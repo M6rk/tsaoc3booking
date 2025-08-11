@@ -1,0 +1,70 @@
+[debug] [2025-08-11T19:39:02.681Z] ----------------------------------------------------------------------
+[debug] [2025-08-11T19:39:02.700Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\mark\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init hosting
+[debug] [2025-08-11T19:39:02.702Z] CLI Version:   14.12.0
+[debug] [2025-08-11T19:39:02.702Z] Platform:      win32
+[debug] [2025-08-11T19:39:02.703Z] Node Version:  v22.18.0
+[debug] [2025-08-11T19:39:02.703Z] Time:          Mon Aug 11 2025 12:39:02 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-08-11T19:39:02.704Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-11T19:39:03.002Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-11T19:39:03.003Z] > authorizing via signed-in user (mark.lovesey@salvationarmy.ca)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\tsaoc3booking\app
+
+Before we get started, keep in mind:
+
+  * You are currently outside your home directory
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 
+[debug] [2025-08-11T19:39:10.640Z] Using project from CLI flag: tsaoc3booking
+[debug] [2025-08-11T19:39:10.642Z] Checked if tokens are valid: false, expires at: 1754932727359
+[debug] [2025-08-11T19:39:10.642Z] Checked if tokens are valid: false, expires at: 1754932727359
+[debug] [2025-08-11T19:39:10.643Z] > refreshing access token with scopes: []
+[debug] [2025-08-11T19:39:10.647Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-11T19:39:10.647Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-11T19:39:10.894Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-08-11T19:39:10.894Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-11T19:39:10.905Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tsaoc3booking [none]
+[debug] [2025-08-11T19:39:11.169Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tsaoc3booking 200
+[debug] [2025-08-11T19:39:11.170Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tsaoc3booking {"projectId":"tsaoc3booking","projectNumber":"352478998941","displayName":"TSAOC3Booking","name":"projects/tsaoc3booking","resources":{"hostingSite":"tsaoc3booking"},"state":"ACTIVE","etag":"1_066ac5c8-3f1e-4223-ac2f-cd38a3c495ff"}
+[info] i  Using project tsaoc3booking (TSAOC3Booking) 
+[info] 
+=== Hosting Setup
+[debug] [2025-08-11T19:39:11.180Z] Checked if tokens are valid: true, expires at: 1754944749894
+[debug] [2025-08-11T19:39:11.180Z] Checked if tokens are valid: true, expires at: 1754944749894
+[debug] [2025-08-11T19:39:11.181Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tsaoc3booking [none]
+[debug] [2025-08-11T19:39:11.328Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tsaoc3booking 200
+[debug] [2025-08-11T19:39:11.329Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tsaoc3booking {"projectId":"tsaoc3booking","projectNumber":"352478998941","displayName":"TSAOC3Booking","name":"projects/tsaoc3booking","resources":{"hostingSite":"tsaoc3booking"},"state":"ACTIVE","etag":"1_066ac5c8-3f1e-4223-ac2f-cd38a3c495ff"}
+[info] 
+[info] Your public directory is the folder (relative to your project directory) that
+[info] will contain Hosting assets to be uploaded with firebase deploy. If you
+[info] have a build process for your assets, use your build's output directory.
+[info] 
+[debug] [2025-08-11T19:39:19.313Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\mark\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:518:28)
+    at Interface.emit (node:domain:489:12)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1132:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:271:20)
+    at ReadStream.emit (node:events:530:35)
+    at ReadStream.emit (node:domain:489:12)
+    at emitKeys (node:internal/readline/utils:370:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+[error] 
+[error] Error: An unexpected error has occurred.
