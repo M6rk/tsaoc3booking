@@ -19,46 +19,37 @@ const NavBar = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <nav className="bg-opacity-80 text-white shadow-lg relative z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="text-white relative z-50 mb-2">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo - Always on the left */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="text-xl font-bold text-white hover:text-red-200 transition-colors">
+            <Link to="/" className="text-xl font-bold text-white hover:text-neutral-200 transition-colors">
               TSA Booking System
             </Link>
-          </div>
-
           {/* Desktop Menu - Right aligned */}
           <div className="hidden md:flex">
             <div className="flex items-center space-x-8">
-              <Link to="/" className="text-white hover:text-red-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link to="/" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
                 Home
               </Link>
               {currentUser ? (
                 <>
-                  <Link to="/rooms" className="text-white hover:text-red-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                    Room Bookings
+                  <Link to="/rooms" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+                    Rooms
                   </Link>
-                  <Link to="/vehicles" className="text-white hover:text-red-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                    Fleet Bookings
+                  <Link to="/vehicles" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+                    Vehicles
                   </Link>
                   {isAdmin && (
                     <>
-                      <Link to="/admindash" className="text-white hover:text-red-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        Admin Dashboard
-                      </Link>
-                      <Link to="/test-db" className="text-white hover:text-red-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        Test DB
+                      <Link to="/admindash" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+                        Admin
                       </Link>
                     </>
                   )}
-                  <span className="text-sm text-red-100 px-3">
-                    {currentUser.email} ({userRole})
-                  </span>
                   <button
                     onClick={handleLogout}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-md font-medium transition-colors"
                   >
                     Logout
                   </button>
@@ -128,13 +119,6 @@ const NavBar = () => {
                     >
                       Admin Dashboard
                     </Link>
-                    <Link 
-                      to="/test-db" 
-                      className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Test DB
-                    </Link>
                   </>
                 )}
               </>
@@ -144,9 +128,6 @@ const NavBar = () => {
             <div className="border-t border-red-700 pt-4 mt-4">
               {currentUser ? (
                 <div className="px-3 py-2">
-                  <p className="text-sm text-red-100 mb-3">
-                    {currentUser.email} ({userRole})
-                  </p>
                   <button
                     onClick={() => {
                       handleLogout();

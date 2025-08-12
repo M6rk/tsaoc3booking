@@ -4,11 +4,11 @@ import NavBar from '../components/NavBar';
 
 const HomePage = () => {
   return (
-    <div className="h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 relative overflow-hidden" style={{background: 'linear-gradient(to bottom right, #7f1d1d, #CC0000, #7f1d1d)'}}>
+    <div className="h-screen bg-[#EE2D3D] relative overflow-hidden">
       <NavBar />
       
-      <div className="relative z-0 flex flex-col items-center justify-center h-full px-4 text-center -mt-16">
-        <div className="mb-6">
+      <div className="relative z-0 flex flex-col items-center justify-center h-full px-4 text-center">
+        <div className="mb-12">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-2">OC3 Bookings</h1>
           <p className="text-lg text-red-100">Room & Fleet Bookings</p>
         </div>
