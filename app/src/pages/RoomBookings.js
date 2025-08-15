@@ -17,6 +17,14 @@ const RoomBookings = () => {
   const [bookings, setBookings] = useState([]); // Add this for Firebase data
   const [loading, setLoading] = useState(false); // Add loading state
 
+useEffect(() => {
+  if (!currentUser) {
+    alert('Please log in to view bookings');
+    return;
+  }
+  
+  loadBookingsForMonth(currentDate);
+}, [currentDate, currentUser]);
   const rooms = [
     { id: 1, name: 'Sanctuary', capacity: 12, shortForm: 'SANC' },
     { id: 2, name: 'Youth Room', capacity: 8, shortForm: 'YR' },
@@ -26,42 +34,62 @@ const RoomBookings = () => {
     { id: 6, name: 'Cafe', capacity: 15, shortForm: 'CAFE' }
   ];
 
-    const loadBookingsForMonth = async (date) => {
-    setLoading(true);
-    try {
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const startOfMonth = `${year}-${(month + 1).toString().padStart(2, '0')}-01`;
-      const endOfMonth = `${year}-${(month + 2).toString().padStart(2, '0')}-01`;
+const loadBookingsForMonth = async (date) => {
+  setLoading(true);
+  try {
+    // ✅ FIXED: Better date range calculation
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    
+    // Start of current month
+    const startOfMonth = new Date(year, month, 1);
+    const startDateString = startOfMonth.toISOString().split('T')[0];
+    
+    // Start of next month
+    const startOfNextMonth = new Date(year, month + 1, 1);
+    const endDateString = startOfNextMonth.toISOString().split('T')[0];
 
-      const q = query(
-        collection(db, 'roomBookings'),
-        where('date', '>=', startOfMonth),
-        where('date', '<', endOfMonth)
-      );
+    console.log('Loading bookings from', startDateString, 'to', endDateString);
 
-      const querySnapshot = await getDocs(q);
-      const monthBookings = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        monthBookings.push({
-          id: doc.id,
-          date: data.date,
-          room: data.room,
-          time: `${data.startTime}-${data.endTime}`,
-          description: data.desc,
-          status: data.status
-        });
+    const q = query(
+      collection(db, 'roomBookings'),
+      where('date', '>=', startDateString),
+      where('date', '<', endDateString)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const monthBookings = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      monthBookings.push({
+        id: doc.id,
+        date: data.date,
+        room: data.room,
+        time: `${data.startTime}-${data.endTime}`,
+        description: data.desc,
+        status: data.status || 'pending'
       });
+    });
 
-      setBookings(monthBookings);
-    } catch (error) {
-      console.error('Error loading bookings:', error);
-      alert('Error loading bookings. Please try again.');
-    } finally {
-      setLoading(false);
+    console.log('Loaded bookings:', monthBookings);
+    setBookings(monthBookings);
+  } catch (error) {
+    console.error('Error loading bookings:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // More specific error messages
+    if (error.code === 'permission-denied') {
+      alert('Permission denied. Please make sure you are logged in with a valid Salvation Army email.');
+    } else if (error.code === 'failed-precondition') {
+      alert('Database query failed. Please contact administrator.');
+    } else {
+      alert(`Error loading bookings: ${error.message}`);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Add useEffect to load bookings when month changes:
   useEffect(() => {
@@ -89,9 +117,10 @@ const handleSubmit = async (e) => {
       startTime,
       endTime,
       desc: description,
-      status: 'confirmed',
+      status: 'pending', // ✅ CHANGED: Changed from 'confirmed' to 'pending'
       createdAt: new Date(),
-      userId: currentUser?.uid || 'anonymous'
+      userId: currentUser?.uid || 'anonymous',
+      userEmail: currentUser?.email || 'unknown' // ✅ ADDED: For admin dashboard
     };
 
     await addDoc(collection(db, 'roomBookings'), bookingData);
@@ -99,12 +128,16 @@ const handleSubmit = async (e) => {
     // Reload bookings for current month
     await loadBookingsForMonth(currentDate);
     
-    alert(`Booking confirmed!\nDate: ${formatDate(selectedDate)}\nRoom: ${selectedRoom}\nTime: ${startTime} - ${endTime}`);
+    alert(`Booking submitted for approval!\nDate: ${formatDate(selectedDate)}\nRoom: ${selectedRoom}\nTime: ${startTime} - ${endTime}`);
     setIsBookingFormOpen(false);
     setIsModalOpen(false);
   } catch (error) {
     console.error('Error creating booking:', error);
-    alert('Error creating booking. Please try again.');
+    if (error.code === 'permission-denied') {
+      alert('Permission denied. Please make sure you are logged in.');
+    } else {
+      alert('Error creating booking. Please try again.');
+    }
   } finally {
     setLoading(false);
   }
