@@ -91,48 +91,63 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Simplified Login - All through Firebase Auth
-  const login = async (email, password) => {
-    try {
-      // All users (including admin) authenticate through Firebase Auth
-      const result = await signInWithEmailAndPassword(auth, email, password);
+// Update the login function with more debugging:
+
+const login = async (email, password) => {
+  try {
+    console.log('Attempting login with:', email);
+    
+    // All users (including admin) authenticate through Firebase Auth
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    console.log('Firebase Auth successful:', result.user.email);
+    
+    // Check if user is admin (simplified)
+    const userIsAdmin = isAdmin(result.user);
+    console.log('Is admin?', userIsAdmin);
+    
+    if (userIsAdmin) {
+      // Admin user - no profile needed in Firestore
+      setUserRole('admin');
+      setUserProfile({ 
+        name: 'Administrator', 
+        email: email, 
+        role: 'admin' 
+      });
+      console.log('Admin login complete');
+    } else {
+      // Regular user - validate profile exists in Firestore
+      console.log('Checking user profile...');
+      const profile = await getUserProfile(email);
       
-      // Check if user is admin
-      const userIsAdmin = await isAdmin(result.user);
-      
-      if (userIsAdmin) {
-        // Admin user - no profile needed in Firestore
-        setUserRole('admin');
-        setUserProfile({ 
-          name: 'Administrator', 
-          email: email, 
-          role: 'admin' 
-        });
-      } else {
-        // Regular user - validate profile exists in Firestore
-        const profile = await getUserProfile(email);
-        if (!profile) {
-          await signOut(auth);
-          throw new Error('Account not found. Please contact an administrator.');
-        }
-        setUserProfile(profile);
-        setUserRole(profile.role || 'user');
+      if (!profile) {
+        console.log('No profile found, signing out');
+        await signOut(auth);
+        throw new Error('Account not found. Please contact an administrator.');
       }
       
-      return result;
-    } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        throw new Error('No account found with this email address.');
-      } else if (error.code === 'auth/wrong-password') {
-        throw new Error('Incorrect password.');
-      } else if (error.code === 'auth/invalid-email') {
-        throw new Error('Invalid email address.');
-      } else if (error.code === 'auth/too-many-requests') {
-        throw new Error('Too many failed login attempts. Please try again later.');
-      }
-      throw error;
+      console.log('User profile found:', profile);
+      setUserProfile(profile);
+      setUserRole(profile.role || 'user');
     }
-  };
+    
+    return result;
+  } catch (error) {
+    console.error('Login error details:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    if (error.code === 'auth/user-not-found') {
+      throw new Error('No account found with this email address.');
+    } else if (error.code === 'auth/wrong-password') {
+      throw new Error('Incorrect password.');
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error('Invalid email address.');
+    } else if (error.code === 'auth/too-many-requests') {
+      throw new Error('Too many failed login attempts. Please try again later.');
+    }
+    throw error;
+  }
+};
 
   // Sign out function
   const logout = async () => {
