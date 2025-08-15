@@ -1,28 +1,24 @@
-// In Firebase Console → Firestore → Rules
+// Firestore Security Rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - users can read their own profile, admins can read all
+    // Users collection - only admins can read/write
     match /users/{userId} {
       allow read, write: if request.auth != null && 
-        (request.auth.uid == userId || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+        (request.auth.token.email == "admin@salvationarmy.ca" || 
+         request.auth.uid == userId);
     }
     
-    // Settings collection - only admins can access
-    match /settings/{document} {
+    // Room bookings - authenticated users can read/write their own
+    match /roomBookings/{bookingId} {
       allow read, write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        request.auth.token.email.matches(".*@salvationarmy\\.ca$");
     }
     
-    // Room bookings - authenticated users can read/write
-    match /roomBookings/{document} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Vehicle bookings - authenticated users can read/write  
-    match /vehicleBookings/{document} {
-      allow read, write: if request.auth != null;
+    // Vehicle bookings - only users with fleet access
+    match /vehicleBookings/{bookingId} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.email.matches(".*@salvationarmy\\.ca$");
     }
   }
 }

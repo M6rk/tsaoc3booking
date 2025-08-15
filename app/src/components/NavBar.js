@@ -19,7 +19,7 @@ const NavBar = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <nav className="text-white relative z-50 mb-2">
+    <nav className="text-white relative z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo - Always on the left */}

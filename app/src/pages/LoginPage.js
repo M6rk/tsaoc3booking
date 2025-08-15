@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../firebase/auth'; // Fixed import path
+import { useAuth } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
@@ -18,8 +18,9 @@ const LoginPage = () => {
       return;
     }
 
-    if (!email.endsWith('@sa.ca')) {
-      setError('Please use your SA email address');
+    // ✅ FIXED: Updated email validation to match your domain
+    if (!email.endsWith('@salvationarmy.ca')) {
+      setError('Please use your Salvation Army email address');
       return;
     }
 
@@ -58,7 +59,7 @@ const LoginPage = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your.name@sa.ca"
+              placeholder="your.name@salvationarmy.ca"
               className="w-full p-3 rounded-lg border-2 border-gray-300 focus:border-red-500 focus:outline-none transition-colors"
               required
             />
@@ -84,14 +85,6 @@ const LoginPage = () => {
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-blue-800 text-sm">
-            <strong>Test Accounts:</strong><br />
-            Admin: oc3admin@sa.ca / admin1234<br />
-            User: oc3user@sa.ca / user1234
-          </p>
-        </div>
       </div>
     </div>
   );

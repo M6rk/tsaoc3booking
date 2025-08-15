@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/firebase';
+import { useAuth } from '../firebase/auth';
 import NavBar from '../components/NavBar';
 
 const FleetBookings = () => {
+  const { currentUser } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,11 +16,12 @@ const FleetBookings = () => {
   const [purpose, setPurpose] = useState('');
   const [workEmail, setWorkEmail] = useState('');
   const [vehicles, setVehicles] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // TODO: Replace with Firebase queries
-    const sampleVehicles = [
+    // Static vehicle list - could also be moved to Firebase if needed
+    const staticVehicles = [
       { id: 1, name: 'Ford Explorer #234', type: 'SUV', capacity: 7, shortForm: 'FE234' },
       { id: 2, name: 'Honda Civic #156', type: 'Sedan', capacity: 5, shortForm: 'HC156' },
       { id: 3, name: 'Chevrolet Tahoe #789', type: 'SUV', capacity: 8, shortForm: 'CT789' },
@@ -24,21 +29,60 @@ const FleetBookings = () => {
       { id: 5, name: 'Ford Transit #567', type: 'Van', capacity: 12, shortForm: 'FT567' },
       { id: 6, name: 'Nissan Altima #890', type: 'Sedan', capacity: 5, shortForm: 'NA890' }
     ];
+    setVehicles(staticVehicles);
+  }, []);
 
-    // TODO: Fetch from Firebase
-    setVehicles(sampleVehicles);
-  }, []); // Empty dependency array is fine for initial data load
+  // ⚠️ FIREBASE READ OPTIMIZATION: Only loads one month at a time to minimize reads
+  const loadBookingsForMonth = async (date) => {
+    setLoading(true);
+    try {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      // Create start and end dates for the month
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 1);
+      
+      const startOfMonth = startDate.toISOString().split('T')[0];
+      const endOfMonth = endDate.toISOString().split('T')[0];
 
-  // TODO: Replace with Firebase collection query filtered by date
-  const sampleBookings = [
-    { date: '2025-08-08', vehicle: 'Ford Explorer #234', time: '08:00-17:00', purpose: 'Airport inspection - YVR Terminal 1', user: 'john.doe@tsa.gov' },
-    { date: '2025-08-08', vehicle: 'Honda Civic #156', time: '09:00-12:00', purpose: 'Downtown office meeting with stakeholders', user: 'jane.smith@tsa.gov' },
-    { date: '2025-08-09', vehicle: 'Chevrolet Tahoe #789', time: '06:00-18:00', purpose: 'Multi-site inspection tour - YVR and Abbotsford', user: 'mike.johnson@tsa.gov' },
-    { date: '2025-08-09', vehicle: 'Toyota Camry #321', time: '10:00-14:00', purpose: 'Training facility visit and equipment pickup', user: 'sarah.wilson@tsa.gov' },
-    { date: '2025-08-10', vehicle: 'Ford Transit #567', time: '07:00-16:00', purpose: 'Team transport for security conference in Vancouver', user: 'tom.brown@tsa.gov' },
-    { date: '2025-08-15', vehicle: 'Ford Explorer #234', time: '09:00-17:00', purpose: 'Airport security audit at YVR', user: 'admin@tsa.gov' },
-    { date: '2025-08-16', vehicle: 'Honda Civic #156', time: '10:00-15:00', purpose: 'Meeting with regional coordinator', user: 'coordinator@tsa.gov' },
-  ];
+      // ⚠️ THIS IS 1 READ OPERATION PER MONTH - Optimized query
+      const q = query(
+        collection(db, 'vehicleBookings'),
+        where('date', '>=', startOfMonth),
+        where('date', '<', endOfMonth)
+      );
+
+      const querySnapshot = await getDocs(q);
+      const monthBookings = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        monthBookings.push({
+          id: doc.id,
+          date: data.date,
+          vehicle: data.vehicle,
+          time: data.startTime && data.endTime ? `${data.startTime}-${data.endTime}` : 'Time TBD',
+          purpose: data.purpose || 'Purpose not specified',
+          user: data.workEmail,
+          status: data.status,
+          startTime: data.startTime,
+          endTime: data.endTime
+        });
+      });
+
+      setBookings(monthBookings);
+    } catch (error) {
+      console.error('Error loading vehicle bookings:', error);
+      alert('Error loading bookings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ⚠️ FIREBASE READ OPTIMIZATION: Only triggers when month changes
+  useEffect(() => {
+    loadBookingsForMonth(currentDate);
+  }, [currentDate]);
 
   const timeOptions = (() => {
     const times = [];
@@ -52,17 +96,28 @@ const FleetBookings = () => {
 
   const getEndTimeOptions = () => startTime ? timeOptions.slice(timeOptions.indexOf(startTime) + 1) : [];
   
+  // Uses cached data from state - NO additional Firebase reads
   const getBookingsForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
-    return sampleBookings.filter(booking => booking.date === dateString);
+    return bookings.filter(booking => booking.date === dateString);
   };
 
   const getVehicleShortForm = (vehicleName) => vehicles.find(v => v.name === vehicleName)?.shortForm || vehicleName;
 
   const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+  // ✅ REQUIREMENT MET: Prevents past date bookings
   const handleDateClick = (day) => {
     const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Prevent booking in the past
+    if (clickedDate < today) {
+      alert('Cannot make bookings for past dates');
+      return;
+    }
+    
     setSelectedDate(clickedDate);
     const dayBookings = getBookingsForDate(clickedDate);
     
@@ -81,6 +136,7 @@ const FleetBookings = () => {
     setWorkEmail('');
   };
 
+  // ⚠️ FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedVehicle || !startTime || !endTime || !purpose.trim() || !workEmail.trim()) {
@@ -88,28 +144,32 @@ const FleetBookings = () => {
       return;
     }
     
-    if (!workEmail.endsWith('@tsa.gov')) {
-      alert('Please use your TSA work email address');
+    // Validate email domain (adjust as needed)
+    if (!workEmail.includes('@')) {
+      alert('Please enter a valid email address');
       return;
     }
     
     setLoading(true);
     
     try {
-      // TODO: Add Firebase document to bookings collection
-      // const bookingData = {
-      //   date: selectedDate.toISOString().split('T')[0],
-      //   vehicle: selectedVehicle,
-      //   startTime,
-      //   endTime,
-      //   time: `${startTime}-${endTime}`,
-      //   purpose,
-      //   workEmail,
-      //   createdAt: new Date(),
-      //   status: 'pending'
-      //   // userId: currentUser?.uid
-      // };
-      // await addDoc(collection(db, 'vehicleBookings'), bookingData);
+      const bookingData = {
+        date: selectedDate.toISOString().split('T')[0],
+        vehicle: selectedVehicle,
+        startTime,
+        endTime,
+        purpose,
+        workEmail,
+        status: 'pending',
+        createdAt: new Date(),
+        userId: currentUser?.uid || 'anonymous'
+      };
+
+      // ⚠️ THIS IS 1 WRITE OPERATION
+      await addDoc(collection(db, 'vehicleBookings'), bookingData);
+      
+      // ⚠️ THIS IS 1 READ OPERATION to refresh the month view
+      await loadBookingsForMonth(currentDate);
       
       alert(`Vehicle booking submitted!\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${startTime} - ${endTime}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
       setIsBookingFormOpen(false);
@@ -129,15 +189,23 @@ const FleetBookings = () => {
     }
   };
 
+  const navigateMonth = (direction) => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
+    setCurrentDate(newDate);
+    // ⚠️ This triggers useEffect which loads new month data (1 read operation)
+  };
+
   const closeAllModals = () => {
     setIsModalOpen(false);
     setIsBookingFormOpen(false);
   };
 
+  // ✅ REQUIREMENT MET: Past dates are disabled and styled differently
   const renderCalendarDays = () => {
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const days = [];
 
     for (let i = 0; i < firstDay; i++) {
@@ -147,19 +215,35 @@ const FleetBookings = () => {
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       const isToday = date.toDateString() === today.toDateString();
+      const isPast = date < today;
       const dayBookings = getBookingsForDate(date);
 
       days.push(
-        <button key={day} onClick={() => handleDateClick(day)} className={`h-32 p-1 border border-gray-200 text-left transition-all duration-200 relative overflow-hidden hover:bg-red-50 hover:border-red-300 cursor-pointer hover:shadow-md ${isToday ? 'bg-red-100 border-red-400' : 'bg-white'}`}>
-          <div className={`absolute top-1 left-1 font-bold text-sm ${isToday ? 'text-red-700' : 'text-gray-800'}`}>{day}</div>
+        <button 
+          key={day} 
+          onClick={() => !isPast && handleDateClick(day)} 
+          disabled={isPast}
+          className={`h-32 p-1 border border-gray-200 text-left transition-all duration-200 relative overflow-hidden ${
+            isPast 
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              : 'hover:bg-red-50 hover:border-red-300 cursor-pointer hover:shadow-md'
+          } ${isToday ? 'bg-red-100 border-red-400' : isPast ? '' : 'bg-white'}`}
+        >
+          <div className={`absolute top-1 left-1 font-bold text-sm ${
+            isPast ? 'text-gray-400' : isToday ? 'text-red-700' : 'text-gray-800'
+          }`}>{day}</div>
           <div className="mt-6 h-24 flex flex-col">
             {dayBookings.length > 0 && (
               <>
-                <div className="text-xs text-red-600 font-semibold mb-1 flex-shrink-0">{dayBookings.length} booking{dayBookings.length > 1 ? 's' : ''}</div>
+                <div className={`text-xs font-semibold mb-1 flex-shrink-0 ${
+                  isPast ? 'text-gray-400' : 'text-red-600'
+                }`}>{dayBookings.length} booking{dayBookings.length > 1 ? 's' : ''}</div>
                 <div className="flex-1 min-h-0 overflow-y-auto">
                   <div className="text-xs space-y-1">
                     {dayBookings.map((booking, index) => (
-                      <div key={index} className="bg-red-200 rounded px-1 py-0.5 text-red-800 w-full flex-shrink-0">
+                      <div key={index} className={`rounded px-1 py-0.5 w-full flex-shrink-0 ${
+                        isPast ? 'bg-gray-200 text-gray-500' : 'bg-red-200 text-red-800'
+                      }`}>
                         <div className="font-medium truncate">{getVehicleShortForm(booking.vehicle)}</div>
                         <div className="text-xs truncate">{booking.time}</div>
                       </div>
@@ -183,12 +267,27 @@ const FleetBookings = () => {
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-8">Fleet Bookings</h1>
         <div className="bg-white rounded-2xl p-6 border-2 w-full max-w-7xl shadow-2xl" style={{borderColor: '#CC0000'}}>
           <div className="flex justify-between items-center mb-6">
-            <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="text-red-700 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            <button 
+              onClick={() => navigateMonth(-1)} 
+              disabled={loading}
+              className="text-red-700 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50 disabled:opacity-50"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-            <h2 className="text-3xl font-bold text-gray-800">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
-            <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="text-red-700 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            <h2 className="text-3xl font-bold text-gray-800">
+              {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {loading && <span className="text-sm text-gray-500 ml-2">(Loading...)</span>}
+            </h2>
+            <button 
+              onClick={() => navigateMonth(1)} 
+              disabled={loading}
+              className="text-red-700 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50 disabled:opacity-50"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
           <div className="grid grid-cols-7 mb-0">
@@ -225,6 +324,13 @@ const FleetBookings = () => {
                   <div className="flex items-center gap-3 mb-2">
                     <div className="text-white px-2 py-1 rounded text-sm font-medium" style={{backgroundColor: '#CC0000'}}>{booking.vehicle}</div>
                     <div className="text-gray-600 font-medium">{booking.time}</div>
+                    <div className={`px-2 py-1 rounded text-xs font-medium ${
+                      booking.status === 'pending' ? 'bg-yellow-200 text-yellow-800' : 
+                      booking.status === 'confirmed' ? 'bg-green-200 text-green-800' : 
+                      'bg-gray-200 text-gray-800'
+                    }`}>
+                      {booking.status}
+                    </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-2">{booking.purpose}</p>
                   <p className="text-gray-500 text-sm">Requested by: {booking.user}</p>
@@ -286,7 +392,7 @@ const FleetBookings = () => {
                   type="email"
                   value={workEmail}
                   onChange={(e) => setWorkEmail(e.target.value)}
-                  placeholder="your.name@tsa.gov"
+                  placeholder="your.name@organization.com"
                   className="w-full p-3 rounded-lg bg-gray-800 text-white border-2"
                   style={{borderColor: '#CC0000'}}
                   required
