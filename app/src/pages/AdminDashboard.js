@@ -24,12 +24,6 @@ const AdminDashboard = () => {
   const [userFormErrors, setUserFormErrors] = useState({});
   const [userLoading, setUserLoading] = useState(false);
 
-  // Admin credentials from .env (read-only)
-  const adminCredentials = {
-    username: process.env.REACT_APP_ADMIN_USERNAME || 'admin@salvationarmy.ca',
-    password: '••••••••••' // Never show actual password
-  };
-
   // ⚠️ FIREBASE READ: Load all bookings from both collections
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -110,36 +104,37 @@ const AdminDashboard = () => {
     }
   }, []); // ✅ No dependencies needed
 
-    useEffect(() => {
+  useEffect(() => {
     // Load actual booking data from Firebase
     loadBookings();
     loadUsers();
-  }, [loadBookings, loadUsers]); 
+  }, [loadBookings, loadUsers]);
 
-  const validateUserForm = (form) => {
-    const errors = {};
+const validateUserForm = (form) => {
+  const errors = {};
 
-    if (!form.name.trim()) {
-      errors.name = 'Name is required';
-    }
+  if (!form.name.trim()) {
+    errors.name = 'Name is required';
+  }
 
-    if (!form.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!form.email.endsWith('@salvationarmy.ca')) {
-      errors.email = 'Email must end with @salvationarmy.ca';
-    } else if (!form.email.includes('@')) {
-      errors.email = 'Please enter a valid email address';
-    }
+  if (!form.email.trim()) {
+    errors.email = 'Email is required';
+  } else if (form.email === 'admin@salvationarmy.ca') {
+    errors.email = 'Admin accounts can only be created through Firebase Console';
+  } else if (!form.email.endsWith('@salvationarmy.ca')) {
+    errors.email = 'Email must end with @salvationarmy.ca';
+  } else if (!form.email.includes('@')) {
+    errors.email = 'Please enter a valid email address';
+  }
 
-    // ✅ FIXED: Always require password (admin controls all passwords)
-    if (!form.password.trim()) {
-      errors.password = 'Password is required';
-    } else if (form.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters long';
-    }
+  if (!form.password.trim()) {
+    errors.password = 'Password is required';
+  } else if (form.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters long';
+  }
 
-    return errors;
-  };
+  return errors;
+};
 
   const handleUserFormSubmit = async (e) => {
     e.preventDefault();
@@ -429,8 +424,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('pending')}
               className={`px-6 py-3 rounded-t-lg font-medium transition-colors ${activeTab === 'pending'
-                  ? 'text-white border-b-2'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'text-white border-b-2'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
               style={{
                 backgroundColor: activeTab === 'pending' ? '#CC0000' : 'transparent',
@@ -442,8 +437,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('all')}
               className={`px-6 py-3 rounded-t-lg font-medium transition-colors ${activeTab === 'all'
-                  ? 'text-white border-b-2'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'text-white border-b-2'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
               style={{
                 backgroundColor: activeTab === 'all' ? '#CC0000' : 'transparent',
@@ -455,8 +450,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('management')}
               className={`px-6 py-3 rounded-t-lg font-medium transition-colors ${activeTab === 'management'
-                  ? 'text-white border-b-2'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'text-white border-b-2'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
               style={{
                 backgroundColor: activeTab === 'management' ? '#CC0000' : 'transparent',
@@ -532,25 +527,12 @@ const AdminDashboard = () => {
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  Admin Account (System)
+                  Admin Account Management
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-2">Username</label>
-                    <div className="p-3 bg-white rounded-lg border border-gray-300 text-gray-800">
-                      {adminCredentials.username}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-2">Password</label>
-                    <div className="p-3 bg-white rounded-lg border border-gray-300 text-gray-800 font-mono">
-                      {adminCredentials.password}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-blue-800 text-sm">
-                    <strong>Note:</strong> Admin credentials are managed through environment variables and cannot be changed from this interface.
+                    <strong>Note:</strong> Admin accounts (admin@salvationarmy.ca) are managed directly through the Firebase Console.
+                    Only regular user accounts can be created and modified through this interface.
                   </p>
                 </div>
               </div>

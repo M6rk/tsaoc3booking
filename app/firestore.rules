@@ -1,24 +1,33 @@
-// Firestore Security Rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - only admins can read/write
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        (request.auth.token.role == "admin" || 
+         request.auth.token.email == "admin@salvationarmy.ca");
+    }
+    
+    // Helper function to check if user has valid SA email
+    function isValidUser() {
+      return request.auth != null && 
+        request.auth.token.email.matches(".*@salvationarmy\\.ca$");
+    }
+    
+    // Users collection - admin can read/write all, users can read their own
     match /users/{userId} {
-      allow read, write: if request.auth != null && 
-        (request.auth.token.email == "admin@salvationarmy.ca" || 
-         request.auth.uid == userId);
+      allow read, write: if isAdmin();
+      allow read: if isValidUser() && request.auth.uid == userId;
     }
     
-    // Room bookings - authenticated users can read/write their own
+    // Room bookings - all authenticated SA users can read/write
     match /roomBookings/{bookingId} {
-      allow read, write: if request.auth != null && 
-        request.auth.token.email.matches(".*@salvationarmy\\.ca$");
+      allow read, write: if isValidUser();
     }
     
-    // Vehicle bookings - only users with fleet access
+    // Vehicle bookings - all authenticated SA users can read/write
     match /vehicleBookings/{bookingId} {
-      allow read, write: if request.auth != null && 
-        request.auth.token.email.matches(".*@salvationarmy\\.ca$");
+      allow read, write: if isValidUser();
     }
   }
 }
