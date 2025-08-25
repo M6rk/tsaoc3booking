@@ -11,7 +11,6 @@ import Rooms from './pages/RoomBookings';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import FleetBookings from './pages/FleetBookings';
-import TestDatabase from './pages/TestDatabase';
 
 const router = createBrowserRouter([
   {
@@ -43,14 +42,6 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute adminOnly={true}>
         <AdminDashboard />
-      </ProtectedRoute>
-    )
-  },
-  {
-    path: '/test-db',
-    element: (
-      <ProtectedRoute adminOnly={true}>
-        <TestDatabase />
       </ProtectedRoute>
     )
   },
