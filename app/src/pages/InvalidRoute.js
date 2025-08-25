@@ -4,7 +4,7 @@ import NavBar from '../components/NavBar';
 
 const InvalidRoute = () => {
   return (
-    <div className="h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 relative overflow-hidden" style={{background: 'linear-gradient(to bottom right, #7f1d1d, #CC0000, #7f1d1d)'}}>
+    <div className="h-screen bg-[#EE2D3D] relative overflow-hidden">
       {/* Navigation */}
      <NavBar />
 

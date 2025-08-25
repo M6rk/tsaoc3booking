@@ -247,7 +247,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 relative overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #7f1d1d, #CC0000, #7f1d1d)' }}>
+    <div className="min-h-screen bg-[#EE2D3D] relative overflow-hidden">
       <NavBar />
 
       <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-4 pt-8 pb-8">
