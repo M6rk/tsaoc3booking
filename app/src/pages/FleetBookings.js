@@ -23,12 +23,8 @@ const FleetBookings = () => {
   useEffect(() => {
     // Static vehicle list - could also be moved to Firebase if needed
     const staticVehicles = [
-      { id: 1, name: 'Ford Explorer #234', type: 'SUV', capacity: 7, shortForm: 'FE234' },
-      { id: 2, name: 'Honda Civic #156', type: 'Sedan', capacity: 5, shortForm: 'HC156' },
-      { id: 3, name: 'Chevrolet Tahoe #789', type: 'SUV', capacity: 8, shortForm: 'CT789' },
-      { id: 4, name: 'Toyota Camry #321', type: 'Sedan', capacity: 5, shortForm: 'TC321' },
-      { id: 5, name: 'Ford Transit #567', type: 'Van', capacity: 12, shortForm: 'FT567' },
-      { id: 6, name: 'Nissan Altima #890', type: 'Sedan', capacity: 5, shortForm: 'NA890' }
+      { id: 1, name: 'Honda CRV #234', type: 'SUV', capacity: 5, shortForm: 'CRV' },
+      { id: 2, name: 'Honda Odyssey #156', type: 'Minivan', capacity: 7, shortForm: 'ODY' },
     ];
     setVehicles(staticVehicles);
   }, []);
@@ -62,10 +58,11 @@ const FleetBookings = () => {
           id: doc.id,
           date: data.date,
           vehicle: data.vehicle,
-          time: data.startTime && data.endTime ? `${data.startTime}-${data.endTime}` : 'Time TBD',
+          time: data.startTime && data.endTime ? `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}` : 'Time TBD', // ✅ UPDATED
           purpose: data.purpose || 'Purpose not specified',
-          user: data.userName || data.workEmail?.split('@')[0] || 'Unknown User', // ✅ UPDATED: Use userName first
-          status: data.status,
+          status: data.status || 'pending',
+          user: data.userName || data.workEmail?.split('@')[0] || 'Unknown User',
+          denialReason: data.denialReason,
           startTime: data.startTime,
           endTime: data.endTime
         });
@@ -85,17 +82,31 @@ const FleetBookings = () => {
     loadBookingsForMonth(currentDate);
   }, [currentDate]);
 
+  const convertTo12Hour = (time24) => {
+    const [hour, minute] = time24.split(':');
+    const hourNum = parseInt(hour);
+    const ampm = hourNum >= 12 ? 'PM' : 'AM';
+    const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+    return `${hour12}:${minute} ${ampm}`;
+  };
+
   const timeOptions = (() => {
     const times = [];
     for (let hour = 6; hour <= 23; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
-        times.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+        const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const time12 = convertTo12Hour(time24);
+        times.push({ value: time24, label: time12 });
       }
     }
     return times;
   })();
 
-  const getEndTimeOptions = () => startTime ? timeOptions.slice(timeOptions.indexOf(startTime) + 1) : [];
+  const getEndTimeOptions = () => {
+    if (!startTime) return [];
+    const startIndex = timeOptions.findIndex(option => option.value === startTime);
+    return timeOptions.slice(startIndex + 1);
+  };
 
   // Uses cached data from state - NO additional Firebase reads
   const getBookingsForDate = (date) => {
@@ -169,7 +180,7 @@ const FleetBookings = () => {
       await addDoc(collection(db, 'vehicleBookings'), bookingData);
       await loadBookingsForMonth(currentDate);
 
-      alert(`Vehicle booking submitted!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${startTime} - ${endTime}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
+      alert(`Vehicle booking submitted!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
       setIsBookingFormOpen(false);
       setIsModalOpen(false);
     } catch (error) {
@@ -182,7 +193,7 @@ const FleetBookings = () => {
 
   const handleStartTimeChange = (time) => {
     setStartTime(time);
-    if (endTime && timeOptions.indexOf(endTime) <= timeOptions.indexOf(time)) {
+    if (endTime && timeOptions.findIndex(option => option.value === endTime) <= timeOptions.findIndex(option => option.value === time)) {
       setEndTime('');
     }
   };
@@ -314,18 +325,32 @@ const FleetBookings = () => {
             <div className="space-y-4">
               {getBookingsForDate(selectedDate).map((booking, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-white px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#CC0000' }}>{booking.vehicle}</div>
-                    <div className="text-gray-600 font-medium">{booking.time}</div>
-                    <div className={`px-2 py-1 rounded text-xs font-medium ${booking.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                      booking.status === 'confirmed' ? 'bg-green-200 text-green-800' :
-                        'bg-gray-200 text-gray-800'
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="text-white px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#CC0000' }}>
+                        {booking.vehicle}
+                      </div>
+                      <div className="text-gray-600 font-medium">{booking.time}</div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium border ${booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                      booking.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' :
+                        booking.status === 'denied' ? 'bg-red-100 text-red-800 border-red-300' :
+                          'bg-gray-100 text-gray-800 border-gray-300'
                       }`}>
-                      {booking.status}
+                      {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending'}
                     </div>
                   </div>
-                  <p className="text-gray-700 leading-relaxed mb-2">{booking.purpose}</p>
-                  <p className="text-gray-500 text-sm">Requested by: {booking.user}</p>
+                  <p className="text-gray-700 leading-relaxed">{booking.purpose}</p>
+                  {booking.user && (
+                    <p className="text-gray-500 text-sm mt-2">Requested by: {booking.user}</p>
+                  )}
+                  {booking.status === 'denied' && booking.denialReason && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                      <p className="text-red-800 text-sm">
+                        <strong>Denial Reason:</strong> {booking.denialReason}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -345,12 +370,12 @@ const FleetBookings = () => {
             <p className="text-red-300 mb-6">{formatDate(selectedDate)}</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Name</label>
+                <label className="block text-white font-semibold mb-2">Work Email</label>
                 <input
-                  type="text"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder="Enter your full name"
+                  type="email"
+                  value={workEmail}
+                  onChange={(e) => setWorkEmail(e.target.value)}
+                  placeholder="your.name@organization.com"
                   className="w-full p-3 rounded-lg bg-gray-800 text-white border-2"
                   style={{ borderColor: '#CC0000' }}
                   required
@@ -367,7 +392,7 @@ const FleetBookings = () => {
                     required
                   >
                     <option value="">Start time</option>
-                    {timeOptions.map(time => <option key={time} value={time}>{time}</option>)}
+                    {timeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                   <span className="text-white font-medium">to</span>
                   <select
@@ -379,7 +404,7 @@ const FleetBookings = () => {
                     required
                   >
                     <option value="">End time</option>
-                    {getEndTimeOptions().map(time => <option key={time} value={time}>{time}</option>)}
+                    {getEndTimeOptions().map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -389,18 +414,6 @@ const FleetBookings = () => {
                   <option value="">Select a vehicle</option>
                   {vehicles.map(vehicle => <option key={vehicle.id} value={vehicle.name}>{vehicle.name} ({vehicle.type} - {vehicle.capacity} seats)</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="block text-white font-semibold mb-2">Work Email</label>
-                <input
-                  type="email"
-                  value={workEmail}
-                  onChange={(e) => setWorkEmail(e.target.value)}
-                  placeholder="your.name@organization.com"
-                  className="w-full p-3 rounded-lg bg-gray-800 text-white border-2"
-                  style={{ borderColor: '#CC0000' }}
-                  required
-                />
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">Purpose of Booking</label>

@@ -25,32 +25,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Check if user is admin based on Firebase Auth custom claims, Firestore role, or email
-  const isAdmin = async (user) => {
-    if (!user) return false;
-    
-    try {
-      // Get the ID token to check custom claims
-      const idTokenResult = await user.getIdTokenResult();
-      
-      // Check if role is set to admin in custom claims
-      if (idTokenResult.claims.role === 'admin') {
-        return true;
-      }
-      
-      // Check Firestore for admin role
-      const profile = await getUserProfile(user.email);
-      if (profile && profile.role === 'admin') {
-        return true;
-      }
-      
-      // Fallback: check email for backwards compatibility
-      return user.email === 'admin@salvationarmy.ca';
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      // Fallback to email check if custom claims fail
-      return user.email === 'admin@salvationarmy.ca';
-    }
-  };
+const isAdmin = (user) => {
+  if (!user) return false;
+  return user.email === 'admin@salvationarmy.ca';
+};
 
   // Get user profile from Firestore users collection
   const getUserProfile = async (email) => {
@@ -103,36 +81,42 @@ const login = async (email, password) => {
   try {
     console.log('Attempting login with:', email);
     
-    // All users (including admin) authenticate through Firebase Auth
     const result = await signInWithEmailAndPassword(auth, email, password);
     console.log('Firebase Auth successful:', result.user.email);
     
-    // Check if user is admin - this now includes checking Firestore role
-    const userIsAdmin = await isAdmin(result.user);
+    // Check if user is admin (synchronous now)
+    const userIsAdmin = isAdmin(result.user);
     console.log('Is admin?', userIsAdmin);
     
     if (userIsAdmin) {
       // Admin user - try to get profile from Firestore, fallback to default
-      console.log('Admin login - checking for profile...');
-      const profile = await getUserProfile(email);
-      
-      if (profile) {
-        // Use Firestore profile for admin
-        setUserProfile(profile);
-        setUserRole('admin');
-        console.log('Admin profile found in Firestore:', profile);
-      } else {
-        // Fallback admin profile
+      try {
+        const profile = await getUserProfile(email);
+        if (profile) {
+          setUserProfile(profile);
+          setUserRole('admin');
+        } else {
+          setUserRole('admin');
+          setUserProfile({ 
+            name: 'Administrator', 
+            email: email, 
+            role: 'admin',
+            fleet: true
+          });
+        }
+        console.log('Admin login complete');
+      } catch (error) {
+        console.log('Admin profile error, using fallback:', error);
         setUserRole('admin');
         setUserProfile({ 
           name: 'Administrator', 
           email: email, 
-          role: 'admin' 
+          role: 'admin',
+          fleet: true
         });
-        console.log('Admin login complete - using fallback profile');
       }
     } else {
-      // Regular user - validate profile exists in Firestore
+      // Regular user - must have profile in Firestore
       console.log('Checking user profile...');
       const profile = await getUserProfile(email);
       
@@ -198,33 +182,42 @@ const login = async (email, password) => {
   };
 
   // Monitor Firebase Auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        
-        // Check if user is admin using all methods (custom claims, Firestore role, email)
-        const userIsAdmin = await isAdmin(user);
-        
-        if (userIsAdmin) {
-          // Admin user - try to get profile from Firestore
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      setCurrentUser(user);
+      
+      // Check if user is admin (synchronous)
+      const userIsAdmin = isAdmin(user);
+      
+      if (userIsAdmin) {
+        try {
           const profile = await getUserProfile(user.email);
-          
           if (profile) {
-            // Use Firestore profile for admin
             setUserProfile(profile);
             setUserRole('admin');
           } else {
-            // Fallback admin profile
             setUserRole('admin');
             setUserProfile({ 
               name: 'Administrator', 
               email: user.email, 
-              role: 'admin' 
+              role: 'admin',
+              fleet: true
             });
           }
-        } else {
-          // Regular user - get profile from Firestore
+        } catch (error) {
+          console.log('Admin profile error, using fallback');
+          setUserRole('admin');
+          setUserProfile({ 
+            name: 'Administrator', 
+            email: user.email, 
+            role: 'admin',
+            fleet: true
+          });
+        }
+      } else {
+        // Regular user - get profile from Firestore
+        try {
           const profile = await getUserProfile(user.email);
           if (profile) {
             setUserProfile(profile);
@@ -233,17 +226,21 @@ const login = async (email, password) => {
             console.warn('User authenticated but no profile found');
             await signOut(auth);
           }
+        } catch (error) {
+          console.error('Error getting user profile:', error);
+          await signOut(auth);
         }
-      } else {
-        setCurrentUser(null);
-        setUserRole(null);
-        setUserProfile(null);
       }
-      setLoading(false);
-    });
+    } else {
+      setCurrentUser(null);
+      setUserRole(null);
+      setUserProfile(null);
+    }
+    setLoading(false);
+  });
 
-    return unsubscribe;
-  }, []);
+  return unsubscribe;
+}, []);
 
   const value = {
     currentUser,

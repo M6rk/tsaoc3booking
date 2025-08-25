@@ -66,9 +66,11 @@ const RoomBookings = () => {
           id: doc.id,
           date: data.date,
           room: data.room,
-          time: `${data.startTime}-${data.endTime}`,
+          time: `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}`,
           description: data.desc,
-          status: data.status || 'pending'
+          status: data.status || 'pending',
+          user: data.userName || 'Unknown User',
+          denialReason: data.denialReason
         });
       });
 
@@ -130,7 +132,7 @@ const RoomBookings = () => {
       // Reload bookings for current month
       await loadBookingsForMonth(currentDate);
 
-      alert(`Booking submitted for approval!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nRoom: ${selectedRoom}\nTime: ${startTime} - ${endTime}`);
+      alert(`Booking submitted for approval!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nRoom: ${selectedRoom}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}`);
       setIsBookingFormOpen(false);
       setIsModalOpen(false);
     } catch (error) {
@@ -151,17 +153,32 @@ const RoomBookings = () => {
     setCurrentDate(newDate);
   };
 
+  const convertTo12Hour = (time24) => {
+    const [hour, minute] = time24.split(':');
+    const hourNum = parseInt(hour);
+    const ampm = hourNum >= 12 ? 'PM' : 'AM';
+    const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+    return `${hour12}:${minute} ${ampm}`;
+  };
+
   const timeOptions = (() => {
     const times = [];
     for (let hour = 7; hour <= 22; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
-        times.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+        const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const time12 = convertTo12Hour(time24);
+        times.push({ value: time24, label: time12 });
       }
     }
     return times;
   })();
 
-  const getEndTimeOptions = () => startTime ? timeOptions.slice(timeOptions.indexOf(startTime) + 1) : [];
+
+  const getEndTimeOptions = () => {
+    if (!startTime) return [];
+    const startIndex = timeOptions.findIndex(option => option.value === startTime);
+    return timeOptions.slice(startIndex + 1);
+  };
 
   const getRoomShortForm = (roomName) => rooms.find(r => r.name === roomName)?.shortForm || roomName;
 
@@ -197,7 +214,7 @@ const RoomBookings = () => {
 
   const handleStartTimeChange = (time) => {
     setStartTime(time);
-    if (endTime && timeOptions.indexOf(endTime) <= timeOptions.indexOf(time)) {
+    if (endTime && timeOptions.findIndex(option => option.value === endTime) <= timeOptions.findIndex(option => option.value === time)) {
       setEndTime('');
     }
   };
@@ -230,8 +247,8 @@ const RoomBookings = () => {
           onClick={() => !isPast && handleDateClick(day)}
           disabled={isPast}
           className={`h-32 p-1 border border-gray-200 text-left transition-all duration-200 relative overflow-hidden ${isPast
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'hover:bg-red-50 hover:border-red-300 cursor-pointer hover:shadow-md'
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'hover:bg-red-50 hover:border-red-300 cursor-pointer hover:shadow-md'
             } ${isToday ? 'bg-red-100 border-red-400' : isPast ? '' : 'bg-white'}`}
         >
           <div className={`absolute top-1 left-1 font-bold text-sm ${isPast ? 'text-gray-400' : isToday ? 'text-red-700' : 'text-gray-800'
@@ -324,11 +341,32 @@ const RoomBookings = () => {
             <div className="space-y-4">
               {getBookingsForDate(selectedDate).map((booking, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-white px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#CC0000' }}>{booking.room}</div>
-                    <div className="text-gray-600 font-medium">{booking.time}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="text-white px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#CC0000' }}>
+                        {booking.room}
+                      </div>
+                      <div className="text-gray-600 font-medium">{booking.time}</div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium border ${booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                      booking.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' :
+                        booking.status === 'denied' ? 'bg-red-100 text-red-800 border-red-300' :
+                          'bg-gray-100 text-gray-800 border-gray-300'
+                      }`}>
+                      {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending'}
+                    </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed">{booking.description}</p>
+                  {booking.user && (
+                    <p className="text-gray-500 text-sm mt-2">Requested by: {booking.user}</p>
+                  )}
+                  {booking.status === 'denied' && booking.denialReason && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                      <p className="text-red-800 text-sm">
+                        <strong>Denial Reason:</strong> {booking.denialReason}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -363,14 +401,14 @@ const RoomBookings = () => {
                 <label className="block text-white font-semibold mb-2">Start Time</label>
                 <select value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)} className="w-full p-3 rounded-lg bg-gray-800 text-white border-2" style={{ borderColor: '#CC0000' }} required>
                   <option value="">Select start time</option>
-                  {timeOptions.map(time => <option key={time} value={time}>{time}</option>)}
+                  {timeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-white font-semibold mb-2">End Time</label>
                 <select value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full p-3 rounded-lg bg-gray-800 text-white border-2" style={{ borderColor: '#CC0000' }} disabled={!startTime} required>
                   <option value="">Select end time</option>
-                  {getEndTimeOptions().map(time => <option key={time} value={time}>{time}</option>)}
+                  {getEndTimeOptions().map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
               <div>
