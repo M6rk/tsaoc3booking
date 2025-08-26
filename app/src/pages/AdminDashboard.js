@@ -17,8 +17,24 @@ const AdminDashboard = () => {
     try {
       const allBookingsData = [];
 
-      // Load room bookings
-      const roomQuery = query(collection(db, 'roomBookings'), orderBy('createdAt', 'desc'));
+      // ✅ ADDED: Calculate date range (30 days ago to today)
+      const today = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+
+      const todayString = today.toISOString().split('T')[0];
+      const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split('T')[0];
+
+      console.log('Loading bookings from', thirtyDaysAgoString, 'to', todayString);
+
+      // Load room bookings with date filter
+      const roomQuery = query(
+        collection(db, 'roomBookings'),
+        where('date', '>=', thirtyDaysAgoString),
+        where('date', '<=', todayString),
+        orderBy('date', 'desc'),
+        orderBy('createdAt', 'desc')
+      );
       const roomSnapshot = await getDocs(roomQuery);
       roomSnapshot.forEach((doc) => {
         const data = doc.data();
@@ -26,7 +42,7 @@ const AdminDashboard = () => {
           id: doc.id,
           type: 'room',
           resource: data.room,
-          user: data.userName || data.userId || 'Unknown User', // UPDATED: Use userName first
+          user: data.userName || data.userId || 'Unknown User',
           email: data.userEmail || currentUser?.email || 'unknown@email.com',
           date: data.date,
           time: `${data.startTime}-${data.endTime}`,
@@ -36,8 +52,14 @@ const AdminDashboard = () => {
         });
       });
 
-      // Load vehicle bookings
-      const vehicleQuery = query(collection(db, 'vehicleBookings'), orderBy('createdAt', 'desc'));
+      // Load vehicle bookings with date filter
+      const vehicleQuery = query(
+        collection(db, 'vehicleBookings'),
+        where('date', '>=', thirtyDaysAgoString),
+        where('date', '<=', todayString),
+        orderBy('date', 'desc'),
+        orderBy('createdAt', 'desc')
+      );
       const vehicleSnapshot = await getDocs(vehicleQuery);
       vehicleSnapshot.forEach((doc) => {
         const data = doc.data();
@@ -45,7 +67,7 @@ const AdminDashboard = () => {
           id: doc.id,
           type: 'vehicle',
           resource: data.vehicle,
-          user: data.userName || data.workEmail?.split('@')[0] || 'Unknown User', // UPDATED: Use userName first
+          user: data.workEmail?.split('@')[0] || 'Unknown User',
           email: data.workEmail || 'unknown@email.com',
           date: data.date,
           time: data.startTime && data.endTime ? `${data.startTime}-${data.endTime}` : 'Time TBD',
@@ -55,8 +77,12 @@ const AdminDashboard = () => {
         });
       });
 
-      // Sort all bookings by submission date (newest first)
-      allBookingsData.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      // Sort all bookings by date (newest first), then by submission time
+      allBookingsData.sort((a, b) => {
+        const dateCompare = new Date(b.date) - new Date(a.date);
+        if (dateCompare !== 0) return dateCompare;
+        return new Date(b.submittedAt) - new Date(a.submittedAt);
+      });
 
       setAllBookings(allBookingsData);
       setPendingBookings(allBookingsData.filter(booking => booking.status === 'pending'));
@@ -311,9 +337,9 @@ const AdminDashboard = () => {
           {activeTab === 'all' && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">All Bookings</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Recent Bookings</h2>
                 <div className="text-sm text-gray-600">
-                  {allBookings.length} total booking{allBookings.length !== 1 ? 's' : ''}
+                  {allBookings.length} booking{allBookings.length !== 1 ? 's' : ''} (Last 30 days)
                 </div>
               </div>
 

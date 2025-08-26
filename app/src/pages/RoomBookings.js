@@ -65,6 +65,8 @@ const RoomBookings = () => {
           id: doc.id,
           date: data.date,
           room: data.room,
+          startTime: data.startTime, 
+          endTime: data.endTime,    
           time: `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}`,
           description: data.desc,
           status: data.status || 'pending',
@@ -104,10 +106,60 @@ const RoomBookings = () => {
     return bookings.filter(booking => booking.date === dateString);
   };
 
+  // Convert time string (HH:MM) to minutes since midnight
+  const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Check if two time ranges overlap
+  const timesOverlap = (start1, end1, start2, end2) => {
+    const start1Min = timeToMinutes(start1);
+    const end1Min = timeToMinutes(end1);
+    const start2Min = timeToMinutes(start2);
+    const end2Min = timeToMinutes(end2);
+
+    // Two ranges overlap if: start1 < end2 AND end1 > start2
+    return start1Min < end2Min && end1Min > start2Min;
+  };
+
+  // Check for booking conflicts
+  const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
+    const dateString = selectedDate.toISOString().split('T')[0];
+
+    // Filter bookings for same date and resource (room/vehicle)
+    const relevantBookings = bookings.filter(booking =>
+      booking.date === dateString &&
+      booking.room === selectedResource || booking.vehicle === selectedResource
+    );
+
+    // Check each booking for time overlap
+    const conflicts = relevantBookings.filter(booking => {
+      // Only check approved and pending bookings (not denied)
+      if (booking.status === 'denied') return false;
+
+      return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
+    });
+
+    return conflicts;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRoom || !startTime || !endTime || !description.trim() || !userName.trim()) {
       alert('Please fill in all fields');
+      return;
+    }
+
+    // ✅ ADDED: Check for time conflicts
+    const conflicts = checkForConflicts(bookings, selectedRoom, startTime, endTime, selectedDate);
+
+    if (conflicts.length > 0) {
+      const conflictDetails = conflicts.map(conflict =>
+        `${conflict.room} (${convertTo12Hour(conflict.startTime)}-${convertTo12Hour(conflict.endTime)}) - ${conflict.status}`
+      ).join('\n');
+
+      alert(`Time conflict detected!\n\nThe following booking(s) overlap with your requested time:\n\n${conflictDetails}\n\nPlease choose a different time slot.`);
       return;
     }
 
@@ -119,7 +171,7 @@ const RoomBookings = () => {
         startTime,
         endTime,
         desc: description,
-        userName: userName.trim(), // ✅ ADDED: User's actual name
+        userName: userName.trim(),
         status: 'pending',
         createdAt: new Date(),
         userId: currentUser?.uid || 'anonymous',
@@ -127,8 +179,6 @@ const RoomBookings = () => {
       };
 
       await addDoc(collection(db, 'roomBookings'), bookingData);
-
-      // Reload bookings for current month
       await loadBookingsForMonth(currentDate);
 
       alert(`Booking submitted for approval!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nRoom: ${selectedRoom}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}`);

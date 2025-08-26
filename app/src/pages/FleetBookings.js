@@ -57,12 +57,13 @@ const FleetBookings = () => {
           id: doc.id,
           date: data.date,
           vehicle: data.vehicle,
-          time: data.startTime && data.endTime ? `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}` : 'Time TBD', // ✅ UPDATED
+          startTime: data.startTime, 
+          endTime: data.endTime,      
+          time: data.startTime && data.endTime ? `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}` : 'Time TBD',
           purpose: data.purpose || 'Purpose not specified',
           status: data.status || 'pending',
-          denialReason: data.denialReason,
-          startTime: data.startTime,
-          endTime: data.endTime
+          user: data.workEmail?.split('@')[0] || 'Unknown User',
+          denialReason: data.denialReason
         });
       });
 
@@ -143,63 +144,102 @@ const FleetBookings = () => {
     setPurpose('');
     setWorkEmail('');
   };
+  // Convert time string (HH:MM) to minutes since midnight
+  const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
 
-  // FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // ✅ FIXED: Check for trim() and proper validation
-  if (!selectedVehicle || 
-      !startTime || 
-      !endTime || 
-      !purpose.trim() || 
-      !workEmail.trim() 
-      ) {
-    alert('Please fill in all fields');
-    console.log('Validation failed:', {
-      selectedVehicle,
-      startTime,
-      endTime, 
-      purpose: purpose.trim(),
-      workEmail: workEmail.trim(),
+  // Check if two time ranges overlap
+  const timesOverlap = (start1, end1, start2, end2) => {
+    const start1Min = timeToMinutes(start1);
+    const end1Min = timeToMinutes(end1);
+    const start2Min = timeToMinutes(start2);
+    const end2Min = timeToMinutes(end2);
+
+    // Two ranges overlap if: start1 < end2 AND end1 > start2
+    return start1Min < end2Min && end1Min > start2Min;
+  };
+
+  // Check for booking conflicts
+  const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
+    const dateString = selectedDate.toISOString().split('T')[0];
+
+    // Filter bookings for same date and resource (room/vehicle)
+    const relevantBookings = bookings.filter(booking =>
+      booking.date === dateString &&
+      booking.room === selectedResource || booking.vehicle === selectedResource
+    );
+
+    // Check each booking for time overlap
+    const conflicts = relevantBookings.filter(booking => {
+      // Only check approved and pending bookings (not denied)
+      if (booking.status === 'denied') return false;
+
+      return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
     });
-    return;
-  }
-  
-  // Validate email format
-  if (!workEmail.includes('@')) {
-    alert('Please enter a valid email address');
-    return;
-  }
-  
-  setLoading(true);
-  
-  try {
-    const bookingData = {
-      date: selectedDate.toISOString().split('T')[0],
-      vehicle: selectedVehicle,
-      startTime,
-      endTime,
-      purpose: purpose.trim(),
-      workEmail: workEmail.trim(),
-      status: 'pending',
-      createdAt: new Date(),
-      userId: currentUser?.uid || 'anonymous'
-    };
 
-    await addDoc(collection(db, 'vehicleBookings'), bookingData);
-    await loadBookingsForMonth(currentDate);
+    return conflicts;
+  };
+  // FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    alert(`Vehicle booking submitted!\n${workEmail}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
-    setIsBookingFormOpen(false);
-    setIsModalOpen(false);
-  } catch (error) {
-    console.error('Error creating booking:', error);
-    alert('Error creating booking. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!selectedVehicle ||
+      !startTime ||
+      !endTime ||
+      !purpose.trim() ||
+      !workEmail.trim()) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    // Validate email format
+    if (!workEmail.includes('@')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // ✅ ADDED: Check for time conflicts
+    const conflicts = checkForConflicts(bookings, selectedVehicle, startTime, endTime, selectedDate);
+
+    if (conflicts.length > 0) {
+      const conflictDetails = conflicts.map(conflict =>
+        `${conflict.vehicle} (${convertTo12Hour(conflict.startTime)}-${convertTo12Hour(conflict.endTime)}) - ${conflict.status}`
+      ).join('\n');
+
+      alert(`Time conflict detected!\n\nThe following booking(s) overlap with your requested time:\n\n${conflictDetails}\n\nPlease choose a different time slot.`);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const bookingData = {
+        date: selectedDate.toISOString().split('T')[0],
+        vehicle: selectedVehicle,
+        startTime,
+        endTime,
+        purpose: purpose.trim(),
+        workEmail: workEmail.trim(),
+        status: 'pending',
+        createdAt: new Date(),
+        userId: currentUser?.uid || 'anonymous'
+      };
+
+      await addDoc(collection(db, 'vehicleBookings'), bookingData);
+      await loadBookingsForMonth(currentDate);
+
+      alert(`Vehicle booking submitted!\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
+      setIsBookingFormOpen(false);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Error creating booking. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStartTimeChange = (time) => {
     setStartTime(time);
