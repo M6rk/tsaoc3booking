@@ -6,7 +6,6 @@ import NavBar from '../components/NavBar';
 
 const FleetBookings = () => {
   const { currentUser } = useAuth();
-  const [userName, setUserName] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,7 +60,6 @@ const FleetBookings = () => {
           time: data.startTime && data.endTime ? `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}` : 'Time TBD', // ✅ UPDATED
           purpose: data.purpose || 'Purpose not specified',
           status: data.status || 'pending',
-          user: data.userName || data.workEmail?.split('@')[0] || 'Unknown User',
           denialReason: data.denialReason,
           startTime: data.startTime,
           endTime: data.endTime
@@ -144,7 +142,6 @@ const FleetBookings = () => {
     setEndTime('');
     setPurpose('');
     setWorkEmail('');
-    setUserName(''); // ADDED: Reset user name
   };
 
   // FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
@@ -156,8 +153,8 @@ const handleSubmit = async (e) => {
       !startTime || 
       !endTime || 
       !purpose.trim() || 
-      !workEmail.trim() || 
-      !userName.trim()) {
+      !workEmail.trim() 
+      ) {
     alert('Please fill in all fields');
     console.log('Validation failed:', {
       selectedVehicle,
@@ -165,7 +162,6 @@ const handleSubmit = async (e) => {
       endTime, 
       purpose: purpose.trim(),
       workEmail: workEmail.trim(),
-      userName: userName.trim()
     });
     return;
   }
@@ -186,7 +182,6 @@ const handleSubmit = async (e) => {
       endTime,
       purpose: purpose.trim(),
       workEmail: workEmail.trim(),
-      userName: userName.trim(),
       status: 'pending',
       createdAt: new Date(),
       userId: currentUser?.uid || 'anonymous'
@@ -194,8 +189,8 @@ const handleSubmit = async (e) => {
 
     await addDoc(collection(db, 'vehicleBookings'), bookingData);
     await loadBookingsForMonth(currentDate);
-    
-    alert(`Vehicle booking submitted!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
+
+    alert(`Vehicle booking submitted!\n${workEmail}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
     setIsBookingFormOpen(false);
     setIsModalOpen(false);
   } catch (error) {
