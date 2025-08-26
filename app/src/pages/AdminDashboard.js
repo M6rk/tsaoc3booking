@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 import { useAuth } from '../firebase/auth';
 import NavBar from '../components/NavBar';
