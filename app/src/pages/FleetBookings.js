@@ -162,25 +162,26 @@ const FleetBookings = () => {
   };
 
   // Check for booking conflicts
-  const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
-    const dateString = selectedDate.toISOString().split('T')[0];
+const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
+  const dateString = selectedDate.toISOString().split('T')[0];
 
-    // Filter bookings for same date and resource (room/vehicle)
-    const relevantBookings = bookings.filter(booking =>
+  // Only bookings for the same date AND same vehicle
+  const relevantBookings = bookings.filter(
+    booking =>
       booking.date === dateString &&
-      booking.room === selectedResource || booking.vehicle === selectedResource
-    );
+      booking.vehicle === selectedResource
+  );
 
-    // Check each booking for time overlap
-    const conflicts = relevantBookings.filter(booking => {
-      // Only check approved and pending bookings (not denied)
-      if (booking.status === 'denied') return false;
+  // Check each booking for time overlap
+  const conflicts = relevantBookings.filter(booking => {
+    // Only check approved and pending bookings (not denied)
+    if (booking.status === 'denied') return false;
+    return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
+  });
 
-      return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
-    });
+  return conflicts;
+};
 
-    return conflicts;
-  };
   // FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
   const handleSubmit = async (e) => {
     e.preventDefault();

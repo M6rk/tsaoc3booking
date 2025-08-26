@@ -32,7 +32,9 @@ const RoomBookings = () => {
     { id: 3, name: "Children's Ministry Room", shortForm: 'CMR' },
     { id: 4, name: 'Prayer Room', shortForm: 'PR' },
     { id: 5, name: 'Main Kitchen', shortForm: 'KIT' },
-    { id: 6, name: 'Café', shortForm: 'CAFE' }
+    { id: 6, name: 'Café', shortForm: 'CAFE' },
+    { id: 7, name: 'Gym', shortForm: 'GYM' },
+    { id: 8, name: 'Fireside Room', shortForm: 'FSR' }
   ];
 
   const loadBookingsForMonth = async (date) => {
@@ -65,8 +67,8 @@ const RoomBookings = () => {
           id: doc.id,
           date: data.date,
           room: data.room,
-          startTime: data.startTime, 
-          endTime: data.endTime,    
+          startTime: data.startTime,
+          endTime: data.endTime,
           time: `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}`,
           description: data.desc,
           status: data.status || 'pending',
@@ -127,17 +129,16 @@ const RoomBookings = () => {
   const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
     const dateString = selectedDate.toISOString().split('T')[0];
 
-    // Filter bookings for same date and resource (room/vehicle)
-    const relevantBookings = bookings.filter(booking =>
-      booking.date === dateString &&
-      booking.room === selectedResource || booking.vehicle === selectedResource
+    // Only bookings for the same date AND same room
+    const relevantBookings = bookings.filter(
+      booking =>
+        booking.date === dateString &&
+        booking.room === selectedResource
     );
 
     // Check each booking for time overlap
     const conflicts = relevantBookings.filter(booking => {
-      // Only check approved and pending bookings (not denied)
       if (booking.status === 'denied') return false;
-
       return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
     });
 

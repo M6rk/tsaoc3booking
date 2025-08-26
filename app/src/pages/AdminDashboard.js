@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, getDocs, doc, updateDoc, orderBy, where } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, orderBy, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 import { useAuth } from '../firebase/auth';
 import NavBar from '../components/NavBar';
@@ -153,6 +153,25 @@ const AdminDashboard = () => {
     }
   };
 
+  // FIREBASE WRITE: Delete booking (only for denied bookings)
+  const handleDeleteBooking = async (booking) => {
+    if (!window.confirm('Are you sure you want to permanently delete this booking? This cannot be undone.')) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const collection_name = booking.type === 'room' ? 'roomBookings' : 'vehicleBookings';
+      await deleteDoc(doc(db, collection_name, booking.id));
+      await loadBookings();
+      alert('Booking deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      alert('Error deleting booking. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -204,8 +223,23 @@ const AdminDashboard = () => {
             <p className="text-sm text-gray-600">Requested by: {booking.user}</p>
           </div>
         </div>
-        <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(booking.status)}`}>
-          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+        <div className="flex flex-col items-end">
+          {/* ✅ Show red X only for denied bookings in All Bookings tab */}
+          {activeTab === 'all' && booking.status === 'denied' && (
+            <button
+              title="Delete booking"
+              onClick={() => handleDeleteBooking(booking)}
+              disabled={loading}
+              className="mb-2 text-red-600 hover:text-red-800 transition-colors"
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 6l12 12M6 18L18 6" />
+              </svg>
+            </button>
+          )}
+          <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(booking.status)}`}>
+            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+          </div>
         </div>
       </div>
 
