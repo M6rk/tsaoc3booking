@@ -23,8 +23,8 @@ const FleetBookings = () => {
   useEffect(() => {
     // Static vehicle list - could also be moved to Firebase if needed
     const staticVehicles = [
-      { id: 1, name: 'Honda CRV #234', type: 'SUV', capacity: 5, shortForm: 'CRV' },
-      { id: 2, name: 'Honda Odyssey #156', type: 'Minivan', capacity: 7, shortForm: 'ODY' },
+      { id: 1, name: 'Honda CRV', type: 'SUV', capacity: 5, shortForm: 'CRV' },
+      { id: 2, name: 'Honda Odyssey', type: 'Minivan', capacity: 7, shortForm: 'ODY' },
     ];
     setVehicles(staticVehicles);
   }, []);
@@ -148,48 +148,63 @@ const FleetBookings = () => {
   };
 
   // FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedVehicle || !startTime || !endTime || !purpose.trim() || !workEmail.trim() || !userName.trim()) {
-      alert('Please fill in all fields');
-      return;
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // ✅ FIXED: Check for trim() and proper validation
+  if (!selectedVehicle || 
+      !startTime || 
+      !endTime || 
+      !purpose.trim() || 
+      !workEmail.trim() || 
+      !userName.trim()) {
+    alert('Please fill in all fields');
+    console.log('Validation failed:', {
+      selectedVehicle,
+      startTime,
+      endTime, 
+      purpose: purpose.trim(),
+      workEmail: workEmail.trim(),
+      userName: userName.trim()
+    });
+    return;
+  }
+  
+  // Validate email format
+  if (!workEmail.includes('@')) {
+    alert('Please enter a valid email address');
+    return;
+  }
+  
+  setLoading(true);
+  
+  try {
+    const bookingData = {
+      date: selectedDate.toISOString().split('T')[0],
+      vehicle: selectedVehicle,
+      startTime,
+      endTime,
+      purpose: purpose.trim(),
+      workEmail: workEmail.trim(),
+      userName: userName.trim(),
+      status: 'pending',
+      createdAt: new Date(),
+      userId: currentUser?.uid || 'anonymous'
+    };
 
-    // Validate email domain (adjust as needed)
-    if (!workEmail.includes('@')) {
-      alert('Please enter a valid email address');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const bookingData = {
-        date: selectedDate.toISOString().split('T')[0],
-        vehicle: selectedVehicle,
-        startTime,
-        endTime,
-        purpose,
-        workEmail,
-        userName: userName.trim(), // ADDED: User's actual name
-        status: 'pending',
-        createdAt: new Date(),
-        userId: currentUser?.uid || 'anonymous'
-      };
-
-      await addDoc(collection(db, 'vehicleBookings'), bookingData);
-      await loadBookingsForMonth(currentDate);
-
-      alert(`Vehicle booking submitted!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
-      setIsBookingFormOpen(false);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      alert('Error creating booking. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    await addDoc(collection(db, 'vehicleBookings'), bookingData);
+    await loadBookingsForMonth(currentDate);
+    
+    alert(`Vehicle booking submitted!\nName: ${userName}\nDate: ${formatDate(selectedDate)}\nVehicle: ${selectedVehicle}\nTime: ${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}\nPurpose: ${purpose}\nEmail: ${workEmail}`);
+    setIsBookingFormOpen(false);
+    setIsModalOpen(false);
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    alert('Error creating booking. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleStartTimeChange = (time) => {
     setStartTime(time);

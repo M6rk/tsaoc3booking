@@ -27,18 +27,17 @@ const RoomBookings = () => {
     loadBookingsForMonth(currentDate);
   }, [currentDate, currentUser]);
   const rooms = [
-    { id: 1, name: 'Sanctuary', capacity: 12, shortForm: 'SANC' },
-    { id: 2, name: 'Youth Room', capacity: 8, shortForm: 'YR' },
-    { id: 3, name: "Children's Ministry Room", capacity: 6, shortForm: 'CMR' },
-    { id: 4, name: 'Prayer Room', capacity: 4, shortForm: 'PR' },
-    { id: 5, name: 'Main Kitchen', capacity: 20, shortForm: 'KIT' },
-    { id: 6, name: 'Cafe', capacity: 15, shortForm: 'CAFE' }
+    { id: 1, name: 'Sanctuary', shortForm: 'SANC' },
+    { id: 2, name: 'Youth Room', shortForm: 'YR' },
+    { id: 3, name: "Children's Ministry Room", shortForm: 'CMR' },
+    { id: 4, name: 'Prayer Room', shortForm: 'PR' },
+    { id: 5, name: 'Main Kitchen', shortForm: 'KIT' },
+    { id: 6, name: 'Café', shortForm: 'CAFE' }
   ];
 
   const loadBookingsForMonth = async (date) => {
     setLoading(true);
     try {
-      // ✅ FIXED: Better date range calculation
       const year = date.getFullYear();
       const month = date.getMonth();
 
@@ -415,7 +414,7 @@ const RoomBookings = () => {
                 <label className="block text-white font-semibold mb-2">Room</label>
                 <select value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)} className="w-full p-3 rounded-lg bg-gray-800 text-white border-2" style={{ borderColor: '#CC0000' }} required>
                   <option value="">Select a room</option>
-                  {rooms.map(room => <option key={room.id} value={room.name}>{room.name} (Capacity: {room.capacity})</option>)}
+                  {rooms.map(room => <option key={room.id} value={room.name}>{room.name}</option>)}
                 </select>
               </div>
               <div>

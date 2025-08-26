@@ -19,7 +19,7 @@ const NavBar = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <nav className="text-white relative z-50">
+    <nav className="text-white relative z-50 bg-red-600">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo - Always on the left */}
@@ -29,27 +29,27 @@ const NavBar = () => {
           {/* Desktop Menu - Right aligned */}
           <div className="hidden md:flex">
             <div className="flex items-center space-x-8">
-              <Link to="/" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+              <Link to="/" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
                 Home
               </Link>
               {currentUser ? (
                 <>
-                  <Link to="/rooms" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+                  <Link to="/rooms" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
                     Rooms
                   </Link>
-                  <Link to="/vehicles" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+                  <Link to="/vehicles" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
                     Vehicles
                   </Link>
                   {isAdmin && (
                     <>
-                      <Link to="/admindash" className="text-white hover:text-neutral-200 px-3 py-2 rounded-md text-md font-medium transition-colors">
+                      <Link to="/admindash" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
                         Admin
                       </Link>
                     </>
                   )}
                   <button
                     onClick={handleLogout}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-md font-medium transition-colors"
+                    className="text-white hover:text-neutral-200 px-3 rounded-md text-lg font-normal transition-colors"
                   >
                     Logout
                   </button>
@@ -57,7 +57,7 @@ const NavBar = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-white hover:text-neutral-200 rounded-md text-lg font-normal transition-colors"
                 >
                   Login
                 </Link>
