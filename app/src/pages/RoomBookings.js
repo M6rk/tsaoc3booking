@@ -32,7 +32,7 @@ const RoomBookings = () => {
     { id: 3, name: "Children's Ministry Room", shortForm: 'CMR' },
     { id: 4, name: 'Prayer Room', shortForm: 'PR' },
     { id: 5, name: 'Main Kitchen', shortForm: 'KIT' },
-    { id: 6, name: 'Café', shortForm: 'CAFE' },
+    { id: 6, name: 'Café', shortForm: 'CAFÉ' },
     { id: 7, name: 'Gym', shortForm: 'GYM' },
     { id: 8, name: 'Fireside Room', shortForm: 'FSR' }
   ];
