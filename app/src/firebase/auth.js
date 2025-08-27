@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  signInWithEmailAndPassword,
-  signOut,
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
   onAuthStateChanged,
+  createUserWithEmailAndPassword 
 } from 'firebase/auth';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 const AuthContext = createContext();
@@ -23,72 +24,91 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is admin
-  const isAdmin = (user) => {
-    if (!user) return false;
-    return user.email === process.env.REACT_APP_FIREBASE_ADMIN_EMAIL;
+// Check if user is admin
+const isAdmin = (user) => {
+  if (!user) return false;
+  return user.email === process.env.REACT_APP_FIREBASE_ADMIN_EMAIL;
+};
+
+  // Get user profile from Firestore users collection
+  const getUserProfile = async (email) => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        return { id: userDoc.id, ...userDoc.data() };
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
   };
 
-  const login = async (email, password) => {
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      // Check if user is admin
-      const userIsAdmin = isAdmin(result.user);
+// Update the login function with more debugging
 
-      if (userIsAdmin) {
-        // Admin user
-        try {
-          const profile = await getUserProfile(email);
-          if (profile) {
-            setUserProfile(profile);
-            setUserRole('admin');
-          } else {
-            setUserRole('admin');
-            setUserProfile({
-              name: 'Administrator',
-              email: email,
-              role: 'admin',
-              fleet: true
-            });
-          }
-        } catch (error) {
+const login = async (email, password) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    // Check if user is admin
+    const userIsAdmin = isAdmin(result.user);
+    
+    if (userIsAdmin) {
+      // Admin user
+      try {
+        const profile = await getUserProfile(email);
+        if (profile) {
+          setUserProfile(profile);
           setUserRole('admin');
-          setUserProfile({
-            name: 'Administrator',
-            email: email,
+        } else {
+          setUserRole('admin');
+          setUserProfile({ 
+            name: 'Administrator', 
+            email: email, 
             role: 'admin',
             fleet: true
           });
         }
-      } else {
-        // Regular user
-        const profile = await getUserProfile(email);
-
-        if (!profile) {
-          await signOut(auth);
-          throw new Error('Account not found. Please contact an administrator.');
-        }
-        setUserProfile(profile);
-        setUserRole(profile.role || 'user');
+      } catch (error) {
+        setUserRole('admin');
+        setUserProfile({ 
+          name: 'Administrator', 
+          email: email, 
+          role: 'admin',
+          fleet: true
+        });
       }
-
-      return result;
-    } catch (error) {
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-
-      if (error.code === 'auth/user-not-found') {
-        throw new Error('No account found with this email address.');
-      } else if (error.code === 'auth/wrong-password') {
-        throw new Error('Incorrect password.');
-      } else if (error.code === 'auth/invalid-email') {
-        throw new Error('Invalid email address.');
-      } else if (error.code === 'auth/too-many-requests') {
-        throw new Error('Too many failed login attempts. Please try again later.');
+    } else {
+      // Regular user
+      const profile = await getUserProfile(email);
+      
+      if (!profile) {
+        await signOut(auth);
+        throw new Error('Account not found. Please contact an administrator.');
       }
-      throw error;
+      setUserProfile(profile);
+      setUserRole(profile.role || 'user');
     }
-  };
+    
+    return result;
+  } catch (error) {
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    if (error.code === 'auth/user-not-found') {
+      throw new Error('No account found with this email address.');
+    } else if (error.code === 'auth/wrong-password') {
+      throw new Error('Incorrect password.');
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error('Invalid email address.');
+    } else if (error.code === 'auth/too-many-requests') {
+      throw new Error('Too many failed login attempts. Please try again later.');
+    }
+    throw error;
+  }
+};
 
   // Sign out function
   const logout = async () => {
@@ -113,70 +133,67 @@ export const AuthProvider = ({ children }) => {
       });
       return users;
     } catch (error) {
-      console.error('Error getting users:', error);
       return [];
     }
   };
 
   // Monitor Firebase Auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      setCurrentUser(user);
 
-        // Check if user is admin (synchronous)
-        const userIsAdmin = isAdmin(user);
-
-        if (userIsAdmin) {
-          try {
-            const profile = await getUserProfile(user.email);
-            if (profile) {
-              setUserProfile(profile);
-              setUserRole('admin');
-            } else {
-              setUserRole('admin');
-              setUserProfile({
-                name: 'Administrator',
-                email: user.email,
-                role: 'admin',
-                fleet: true
-              });
-            }
-          } catch (error) {
+      // Check if user is admin (synchronous)
+      const userIsAdmin = isAdmin(user);
+      
+      if (userIsAdmin) {
+        try {
+          const profile = await getUserProfile(user.email);
+          if (profile) {
+            setUserProfile(profile);
             setUserRole('admin');
-            setUserProfile({
-              name: 'Administrator',
-              email: user.email,
+          } else {
+            setUserRole('admin');
+            setUserProfile({ 
+              name: 'Administrator', 
+              email: user.email, 
               role: 'admin',
               fleet: true
             });
           }
-        } else {
-          // Regular user
-          try {
-            const profile = await getUserProfile(user.email);
-            if (profile) {
-              setUserProfile(profile);
-              setUserRole(profile.role || 'user');
-            } else {
-              console.warn('User authenticated but no profile found');
-              await signOut(auth);
-            }
-          } catch (error) {
-            console.error('Error getting user profile:', error);
-            await signOut(auth);
-          }
+        } catch (error) {
+          setUserRole('admin');
+          setUserProfile({ 
+            name: 'Administrator', 
+            email: user.email, 
+            role: 'admin',
+            fleet: true
+          });
         }
       } else {
-        setCurrentUser(null);
-        setUserRole(null);
-        setUserProfile(null);
+        // Regular user
+        try {
+          const profile = await getUserProfile(user.email);
+          if (profile) {
+            setUserProfile(profile);
+            setUserRole(profile.role || 'user');
+          } else {
+            await signOut(auth);
+          }
+        } catch (error) {
+          await signOut(auth);
+        }
       }
-      setLoading(false);
-    });
+    } else {
+      setCurrentUser(null);
+      setUserRole(null);
+      setUserProfile(null);
+    }
+    setLoading(false);
+  });
 
-    return unsubscribe;
-  }, []);
+  return unsubscribe;
+}, []);
 
   const value = {
     currentUser,
@@ -185,7 +202,6 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    createUserAccount,
     getAllUsers,
     isAdmin: userRole === 'admin'
   };
