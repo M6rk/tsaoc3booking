@@ -22,11 +22,9 @@ const NavBar = () => {
     <nav className="text-white relative z-50 bg-red-600">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          {/* Logo - Always on the left */}
             <Link to="/" className="text-xl font-bold text-white hover:text-neutral-200 transition-colors">
               TSA Booking System
             </Link>
-          {/* Desktop Menu - Right aligned */}
           <div className="hidden md:flex">
             <div className="flex items-center space-x-8">
               <Link to="/" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">

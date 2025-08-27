@@ -18,7 +18,6 @@ const LoginPage = () => {
       return;
     }
 
-    // ✅ FIXED: Updated email validation to match your domain
     if (!email.endsWith('@salvationarmy.ca')) {
       setError('Please use your Salvation Army email address');
       return;
@@ -29,7 +28,7 @@ const LoginPage = () => {
 
     try {
       await login(email, password);
-      navigate('/'); // Redirect to home page after successful login
+      navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       setError('Invalid email or password');

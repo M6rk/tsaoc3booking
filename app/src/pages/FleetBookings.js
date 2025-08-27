@@ -20,7 +20,7 @@ const FleetBookings = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Static vehicle list - could also be moved to Firebase if needed
+    // Static vehicle list
     const staticVehicles = [
       { id: 1, name: 'Honda CRV', type: 'SUV', capacity: 5, shortForm: 'CRV' },
       { id: 2, name: 'Honda Odyssey', type: 'Minivan', capacity: 7, shortForm: 'ODY' },
@@ -28,21 +28,18 @@ const FleetBookings = () => {
     setVehicles(staticVehicles);
   }, []);
 
-  // FIREBASE READ OPTIMIZATION: Only loads one month at a time to minimize reads
+  // Only loads one month at a time to minimize reads
   const loadBookingsForMonth = async (date) => {
     setLoading(true);
     try {
       const year = date.getFullYear();
       const month = date.getMonth();
-
-      // Create start and end dates for the month
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 1);
 
       const startOfMonth = startDate.toISOString().split('T')[0];
       const endOfMonth = endDate.toISOString().split('T')[0];
 
-      // THIS IS 1 READ OPERATION PER MONTH - Optimized query
       const q = query(
         collection(db, 'vehicleBookings'),
         where('date', '>=', startOfMonth),
@@ -76,7 +73,7 @@ const FleetBookings = () => {
     }
   };
 
-  // FIREBASE READ OPTIMIZATION: Only triggers when month changes
+  // Only triggers when month changes
   useEffect(() => {
     loadBookingsForMonth(currentDate);
   }, [currentDate]);
@@ -107,7 +104,7 @@ const FleetBookings = () => {
     return timeOptions.slice(startIndex + 1);
   };
 
-  // Uses cached data from state - NO additional Firebase reads
+  // Uses cached data from state 
   const getBookingsForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
     return bookings.filter(booking => booking.date === dateString);
@@ -172,7 +169,7 @@ const checkForConflicts = (bookings, selectedResource, startTime, endTime, selec
       booking.vehicle === selectedResource
   );
 
-  // Check each booking for time overlap
+  // time overlap check
   const conflicts = relevantBookings.filter(booking => {
     // Only check approved and pending bookings (not denied)
     if (booking.status === 'denied') return false;
@@ -182,7 +179,7 @@ const checkForConflicts = (bookings, selectedResource, startTime, endTime, selec
   return conflicts;
 };
 
-  // FIREBASE WRITE: This is 1 write operation per booking + 1 read operation to refresh
+  // This is 1 write operation per booking + 1 read operation to refresh
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -201,7 +198,7 @@ const checkForConflicts = (bookings, selectedResource, startTime, endTime, selec
       return;
     }
 
-    // ✅ ADDED: Check for time conflicts
+    // Check for time conflicts
     const conflicts = checkForConflicts(bookings, selectedVehicle, startTime, endTime, selectedDate);
 
     if (conflicts.length > 0) {
@@ -252,7 +249,7 @@ const checkForConflicts = (bookings, selectedResource, startTime, endTime, selec
   const navigateMonth = (direction) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
     setCurrentDate(newDate);
-    // triggers useEffect which loads new month data (1 read operation)
+    // triggers useEffect which loads new month data
   };
 
   const closeAllModals = () => {

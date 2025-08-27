@@ -11,26 +11,26 @@ const AdminDashboard = () => {
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // FIREBASE READ: Load all bookings from both collections
+  // Load all bookings from both collections
   const loadBookings = useCallback(async () => {
     setLoading(true);
     try {
       const allBookingsData = [];
 
-      // ✅ ADDED: Calculate date range (5 days ago to today)
+      // Calculate date range (7 days ago to today)
       const today = new Date();
-      const fiveDaysAgo = new Date();
-      fiveDaysAgo.setDate(today.getDate() - 5);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
 
       const todayString = today.toISOString().split('T')[0];
-      const fiveDaysAgoString = fiveDaysAgo.toISOString().split('T')[0];
+      const sevenDaysAgoString = sevenDaysAgo.toISOString().split('T')[0];
 
-      console.log('Loading bookings from', fiveDaysAgoString, 'to', todayString);
+      console.log('Loading bookings from', sevenDaysAgoString, 'to', todayString);
 
       // Load room bookings with date filter
       const roomQuery = query(
         collection(db, 'roomBookings'),
-        where('date', '>=', fiveDaysAgoString),
+        where('date', '>=', sevenDaysAgoString),
         where('date', '<=', todayString),
         orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
@@ -55,7 +55,7 @@ const AdminDashboard = () => {
       // Load vehicle bookings with date filter
       const vehicleQuery = query(
         collection(db, 'vehicleBookings'),
-        where('date', '>=', fiveDaysAgoString),
+        where('date', '>=', sevenDaysAgoString),
         where('date', '<=', todayString),
         orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
@@ -77,7 +77,7 @@ const AdminDashboard = () => {
         });
       });
 
-      // Sort all bookings by date (newest first), then by submission time
+      // Sort all bookings by date (newest first) then by submission time
       allBookingsData.sort((a, b) => {
         const dateCompare = new Date(b.date) - new Date(a.date);
         if (dateCompare !== 0) return dateCompare;
@@ -99,7 +99,7 @@ const AdminDashboard = () => {
     loadBookings();
   }, [loadBookings]);
 
-  // FIREBASE WRITE: Approve booking by updating status
+  // Approve booking by updating status
   const handleApprove = async (bookingId, bookingType) => {
     setLoading(true);
     try {
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // FIREBASE WRITE: Deny booking by updating status and adding reason
+  // Deny booking by updating status and adding msg reason
   const handleDeny = async (bookingId, bookingType, reason) => {
     if (!reason || reason.trim() === '') {
       alert('Please provide a reason for denial');
@@ -153,7 +153,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // FIREBASE WRITE: Delete booking (only for denied bookings)
+  // Delete bookings
   const handleDeleteBooking = async (booking) => {
     if (!window.confirm('Are you sure you want to permanently delete this booking? This cannot be undone.')) {
       return;
@@ -172,16 +172,16 @@ const AdminDashboard = () => {
     }
   };
 
-const formatDate = (dateString) => {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const localDate = new Date(year, month - 1, day + 1); 
-  return localDate.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
+  const formatDate = (dateString) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day + 1);
+    return localDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleString('en-US', {
@@ -226,7 +226,7 @@ const formatDate = (dateString) => {
           </div>
         </div>
         <div className="flex flex-col items-end">
-          {/* Show red X only for denied bookings in All Bookings tab */}
+          {/* Delete bookings (red x) */}
           {activeTab === 'all' && (
             <button
               title="Delete booking"
@@ -312,7 +312,7 @@ const formatDate = (dateString) => {
 
       <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-4 pt-8 pb-8">
         <div className="bg-white rounded-2xl p-6 border-2 w-full max-w-7xl shadow-2xl" style={{ borderColor: '#CC0000' }}>
-          {/* Tab Navigation - 2 tabs now */}
+          {/* Tab Navigation */}
           <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('pending')}

@@ -97,12 +97,11 @@ const RoomBookings = () => {
     }
   };
 
-  // Add useEffect to load bookings when month changes:
+  // Add useEffect to load bookings when month changes
   useEffect(() => {
     loadBookingsForMonth(currentDate);
   }, [currentDate]);
 
-  // Update getBookingsForDate to use Firebase data:
   const getBookingsForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
     return bookings.filter(booking => booking.date === dateString);
@@ -152,7 +151,7 @@ const RoomBookings = () => {
       return;
     }
 
-    // ✅ ADDED: Check for time conflicts
+    // Check for time conflicts
     const conflicts = checkForConflicts(bookings, selectedRoom, startTime, endTime, selectedDate);
 
     if (conflicts.length > 0) {
@@ -197,7 +196,7 @@ const RoomBookings = () => {
     }
   };
 
-  // Update month navigation to reload data:
+  // Update month navigation to reload data
   const navigateMonth = async (direction) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
     setCurrentDate(newDate);
