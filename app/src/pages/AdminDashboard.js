@@ -17,20 +17,20 @@ const AdminDashboard = () => {
     try {
       const allBookingsData = [];
 
-      // ✅ ADDED: Calculate date range (30 days ago to today)
+      // ✅ ADDED: Calculate date range (5 days ago to today)
       const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
+      const fiveDaysAgo = new Date();
+      fiveDaysAgo.setDate(today.getDate() - 5);
 
       const todayString = today.toISOString().split('T')[0];
-      const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split('T')[0];
+      const fiveDaysAgoString = fiveDaysAgo.toISOString().split('T')[0];
 
-      console.log('Loading bookings from', thirtyDaysAgoString, 'to', todayString);
+      console.log('Loading bookings from', fiveDaysAgoString, 'to', todayString);
 
       // Load room bookings with date filter
       const roomQuery = query(
         collection(db, 'roomBookings'),
-        where('date', '>=', thirtyDaysAgoString),
+        where('date', '>=', fiveDaysAgoString),
         where('date', '<=', todayString),
         orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
@@ -55,7 +55,7 @@ const AdminDashboard = () => {
       // Load vehicle bookings with date filter
       const vehicleQuery = query(
         collection(db, 'vehicleBookings'),
-        where('date', '>=', thirtyDaysAgoString),
+        where('date', '>=', fiveDaysAgoString),
         where('date', '<=', todayString),
         orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
@@ -224,8 +224,8 @@ const AdminDashboard = () => {
           </div>
         </div>
         <div className="flex flex-col items-end">
-          {/* ✅ Show red X only for denied bookings in All Bookings tab */}
-          {activeTab === 'all' && booking.status === 'denied' && (
+          {/* Show red X only for denied bookings in All Bookings tab */}
+          {activeTab === 'all' && (
             <button
               title="Delete booking"
               onClick={() => handleDeleteBooking(booking)}
@@ -373,7 +373,7 @@ const AdminDashboard = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Recent Bookings</h2>
                 <div className="text-sm text-gray-600">
-                  {allBookings.length} booking{allBookings.length !== 1 ? 's' : ''} (Last 30 days)
+                  {allBookings.length} booking{allBookings.length !== 1 ? 's' : ''} (Last 7 days)
                 </div>
               </div>
 
