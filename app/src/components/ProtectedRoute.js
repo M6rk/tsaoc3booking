@@ -3,13 +3,13 @@ import { useAuth } from '../firebase/auth';
 import LoginPage from '../pages/LoginPage';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { currentUser, userRole } = useAuth();
+  const { currentUser, isAdmin } = useAuth();
 
   if (!currentUser) {
     return <LoginPage />;
   }
 
-  if (adminOnly && userRole !== 'admin') {
+  if (adminOnly && !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 flex items-center justify-center">
         <div className="bg-white rounded-2xl p-8 border-2 border-red-600 text-center">
