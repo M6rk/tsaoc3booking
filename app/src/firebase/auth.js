@@ -5,7 +5,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword 
 } from 'firebase/auth';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 const AuthContext = createContext();
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-// Check if user is admin
+  // Check if user is admin based on Firebase Auth custom claims, Firestore role, or email
 const isAdmin = (user) => {
   if (!user) return false;
   return user.email === process.env.REACT_APP_FIREBASE_ADMIN_EMAIL;
@@ -47,41 +47,59 @@ const isAdmin = (user) => {
     }
   };
 
-// Update the login function with more debugging
+  // Create Firebase Auth user and profile (for regular users only)
+  const createUserAccount = async (email, password, name, fleet = false) => {
+    try {
+      // Prevent creating admin accounts through the app
+      if (email === 'admin@salvationarmy.ca') {
+        throw new Error('Admin accounts can only be created through Firebase Console');
+      }
+
+      // Create Firebase Auth user
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Create user profile in Firestore
+      await setDoc(doc(db, 'users', result.user.uid), {
+        name,
+        email,
+        fleet,
+        role: 'user',
+        createdAt: new Date(),
+        authUid: result.user.uid
+      });
+      
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+// Update the login function with more debugging:
 
 const login = async (email, password) => {
   try {
+    // All users (including admin) authenticate through Firebase Auth
     const result = await signInWithEmailAndPassword(auth, email, password);
-    // Check if user is admin
-    const userIsAdmin = isAdmin(result.user);
-    
+    // Check if user is admin - this now includes checking Firestore role
+    const userIsAdmin = await isAdmin(result.user);
     if (userIsAdmin) {
-      // Admin user
-      try {
-        const profile = await getUserProfile(email);
-        if (profile) {
-          setUserProfile(profile);
-          setUserRole('admin');
-        } else {
-          setUserRole('admin');
-          setUserProfile({ 
-            name: 'Administrator', 
-            email: email, 
-            role: 'admin',
-            fleet: true
-          });
-        }
-      } catch (error) {
+      // Admin user - try to get profile from Firestore, fallback to default
+      const profile = await getUserProfile(email);
+      if (profile) {
+        // Use Firestore profile for admin
+        setUserProfile(profile);
+        setUserRole('admin');
+      } else {
+        // Fallback admin profile
         setUserRole('admin');
         setUserProfile({ 
           name: 'Administrator', 
           email: email, 
-          role: 'admin',
-          fleet: true
+          role: 'admin' 
         });
       }
     } else {
-      // Regular user
+      // Regular user - validate profile exists in Firestore
       const profile = await getUserProfile(email);
       
       if (!profile) {
@@ -122,14 +140,17 @@ const login = async (email, password) => {
     }
   };
 
-  // Get all users
+  // Get all users (admin only) - exclude admin from user list
   const getAllUsers = async () => {
     try {
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const users = [];
       usersSnapshot.forEach((doc) => {
         const userData = { id: doc.id, ...doc.data() };
-        users.push(userData);
+        // Don't include admin accounts in user management
+        if (userData.email !== 'admin@salvationarmy.ca') {
+          users.push(userData);
+        }
       });
       return users;
     } catch (error) {
@@ -138,41 +159,33 @@ const login = async (email, password) => {
   };
 
   // Monitor Firebase Auth state changes
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      setCurrentUser(user);
-
-      // Check if user is admin (synchronous)
-      const userIsAdmin = isAdmin(user);
-      
-      if (userIsAdmin) {
-        try {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        
+        // Check if user is admin using all methods (custom claims, Firestore role, email)
+        const userIsAdmin = await isAdmin(user);
+        
+        if (userIsAdmin) {
+          // Admin user - try to get profile from Firestore
           const profile = await getUserProfile(user.email);
+          
           if (profile) {
+            // Use Firestore profile for admin
             setUserProfile(profile);
             setUserRole('admin');
           } else {
+            // Fallback admin profile
             setUserRole('admin');
             setUserProfile({ 
               name: 'Administrator', 
               email: user.email, 
-              role: 'admin',
-              fleet: true
+              role: 'admin' 
             });
           }
-        } catch (error) {
-          setUserRole('admin');
-          setUserProfile({ 
-            name: 'Administrator', 
-            email: user.email, 
-            role: 'admin',
-            fleet: true
-          });
-        }
-      } else {
-        // Regular user
-        try {
+        } else {
+          // Regular user - get profile from Firestore
           const profile = await getUserProfile(user.email);
           if (profile) {
             setUserProfile(profile);
@@ -180,20 +193,17 @@ useEffect(() => {
           } else {
             await signOut(auth);
           }
-        } catch (error) {
-          await signOut(auth);
         }
+      } else {
+        setCurrentUser(null);
+        setUserRole(null);
+        setUserProfile(null);
       }
-    } else {
-      setCurrentUser(null);
-      setUserRole(null);
-      setUserProfile(null);
-    }
-    setLoading(false);
-  });
+      setLoading(false);
+    });
 
-  return unsubscribe;
-}, []);
+    return unsubscribe;
+  }, []);
 
   const value = {
     currentUser,
@@ -202,6 +212,7 @@ useEffect(() => {
     loading,
     login,
     logout,
+    createUserAccount,
     getAllUsers,
     isAdmin: userRole === 'admin'
   };
