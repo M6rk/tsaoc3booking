@@ -320,7 +320,7 @@ const checkForConflicts = (bookings, selectedResource, startTime, endTime, selec
 
       <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-4 pt-8 pb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-8">Fleet Bookings</h1>
-        <div className="bg-white rounded-2xl p-6 border-2 w-full max-w-7xl shadow-2xl" style={{ borderColor: '#CC0000' }}>
+        <div className="bg-white rounded-2xl p-6 w-full max-w-7xl" style={{ borderColor: '#CC0000' }}>
           <div className="flex justify-between items-center mb-6">
             <button
               onClick={() => navigateMonth(-1)}
@@ -347,7 +347,7 @@ const checkForConflicts = (bookings, selectedResource, startTime, endTime, selec
           </div>
           <div className="grid grid-cols-7 mb-0">
             {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
-              <div key={day} className="text-center text-red-700 font-bold p-3 bg-red-50 border border-gray-200">{day}</div>
+              <div key={day} className="text-center text-[#EE2D3D] font-bold p-3 bg-red-50 border border-gray-200">{day}</div>
             ))}
           </div>
           <div className="grid grid-cols-7">{renderCalendarDays()}</div>
