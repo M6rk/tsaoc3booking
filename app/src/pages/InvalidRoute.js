@@ -4,8 +4,8 @@ import NavBar from '../components/NavBar';
 
 const InvalidRoute = () => {
   return (
-    <div className="h-screen bg-[#EE2D3D] relative overflow-hidden">
-     <NavBar />
+    <div className="h-screen bg-[#EE2D3D] relative pt-0 md:pt-6">
+      <NavBar />
       {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 text-center -mt-16">
         {/* 404 Section */}

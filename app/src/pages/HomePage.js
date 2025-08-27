@@ -4,7 +4,7 @@ import NavBar from '../components/NavBar';
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen bg-[#EE2D3D] relative">
+    <div className="min-h-screen bg-[#EE2D3D] relative pt-0 md:pt-6">
       <NavBar />
       <div className="relative z-0 flex flex-col items-center justify-start px-4 text-center pt-8 pb-8">
         <div className="mb-16">

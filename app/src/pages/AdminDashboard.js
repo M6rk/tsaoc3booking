@@ -307,7 +307,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#EE2D3D] relative overflow-hidden">
+    <div className="min-h-screen bg-[#EE2D3D] relative pt-0 md:pt-6">
       <NavBar />
 
       <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-4 pt-8 pb-8">

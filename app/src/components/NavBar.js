@@ -19,13 +19,15 @@ const NavBar = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <nav className="text-white relative z-50 bg-red-600">
+    <nav
+      className="text-white relative z-50 bg-red-600 shadow-lg mx-auto
+                 rounded-none md:rounded-2xl"
+      style={{ maxWidth: '900px' }}
+    >
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-            <Link to="/" className="text-xl font-bold text-white hover:text-neutral-200 transition-colors">
-              TSA Booking System
-            </Link>
-          <div className="hidden md:flex">
+        <div className="flex justify-center items-center h-16">
+          {/* Desktop Links - Centered */}
+          <div className="hidden md:flex w-full justify-center">
             <div className="flex items-center space-x-8">
               <Link to="/" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
                 Home
@@ -39,11 +41,9 @@ const NavBar = () => {
                     Vehicles
                   </Link>
                   {isAdmin && (
-                    <>
-                      <Link to="/admindash" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
-                        Admin
-                      </Link>
-                    </>
+                    <Link to="/admindash" className="text-white hover:text-neutral-200 px-3 text-lg font-normal transition-colors">
+                      Admin
+                    </Link>
                   )}
                   <button
                     onClick={handleLogout}
@@ -64,7 +64,7 @@ const NavBar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex-shrink-0">
+          <div className="md:hidden flex-shrink-0 absolute right-4">
             <button
               onClick={toggleMenu}
               className="text-white hover:text-red-200 p-2 rounded-md"
@@ -83,10 +83,10 @@ const NavBar = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-red-900 border-t border-red-700">
+        <div className="md:hidden bg-red-900 border-t border-red-700 rounded-b-2xl">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
@@ -94,34 +94,32 @@ const NavBar = () => {
             </Link>
             {currentUser && (
               <>
-                <Link 
-                  to="/rooms" 
+                <Link
+                  to="/rooms"
                   className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Room Bookings
                 </Link>
-                <Link 
-                  to="/vehicles" 
+                <Link
+                  to="/vehicles"
                   className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Fleet Bookings
                 </Link>
                 {isAdmin && (
-                  <>
-                    <Link 
-                      to="/admindash" 
-                      className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Admin Dashboard
-                    </Link>
-                  </>
+                  <Link
+                    to="/admindash"
+                    className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
                 )}
               </>
             )}
-            
+
             {/* Mobile User Section */}
             <div className="border-t border-red-700 pt-4 mt-4">
               {currentUser ? (
@@ -137,8 +135,8 @@ const NavBar = () => {
                   </button>
                 </div>
               ) : (
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="text-white hover:text-red-200 hover:bg-red-700 block px-3 py-2 rounded-md text-base font-medium transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
