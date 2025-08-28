@@ -174,7 +174,7 @@ const AdminDashboard = () => {
 
   const formatDate = (dateString) => {
     const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day + 1);
+    const localDate = new Date(year, month - 1, day);
     return localDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
