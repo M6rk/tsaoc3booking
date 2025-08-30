@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 import { useAuth } from '../firebase/auth';
 import NavBar from '../components/NavBar';
+
+const convertTo12Hour = (time24) => {
+  const [hour, minute] = time24.split(':');
+  const hourNum = parseInt(hour);
+  const ampm = hourNum >= 12 ? 'PM' : 'AM';
+  const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+  return `${hour12}:${minute} ${ampm}`;
+};
 
 const FleetBookings = () => {
   const { currentUser } = useAuth();
@@ -29,7 +37,7 @@ const FleetBookings = () => {
   }, []);
 
   // Only loads one month at a time to minimize reads
-  const loadBookingsForMonth = async (date) => {
+  const loadBookingsForMonth = useCallback(async (date) => {
     setLoading(true);
     try {
       const year = date.getFullYear();
@@ -39,6 +47,8 @@ const FleetBookings = () => {
 
       const startOfMonth = startDate.toISOString().split('T')[0];
       const endOfMonth = endDate.toISOString().split('T')[0];
+
+      console.log('Loading bookings from', startOfMonth, 'to', endOfMonth);
 
       const q = query(
         collection(db, 'vehicleBookings'),
@@ -64,6 +74,7 @@ const FleetBookings = () => {
         });
       });
 
+      console.log('Loaded bookings:', monthBookings);
       setBookings(monthBookings);
     } catch (error) {
       console.error('Error loading vehicle bookings:', error);
@@ -71,7 +82,7 @@ const FleetBookings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [db]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -79,15 +90,7 @@ const FleetBookings = () => {
       return;
     }
     loadBookingsForMonth(currentDate);
-  }, [currentDate, currentUser]);
-
-  const convertTo12Hour = (time24) => {
-    const [hour, minute] = time24.split(':');
-    const hourNum = parseInt(hour);
-    const ampm = hourNum >= 12 ? 'PM' : 'AM';
-    const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
-    return `${hour12}:${minute} ${ampm}`;
-  };
+  }, [currentDate, currentUser, loadBookingsForMonth]);
 
   const timeOptions = (() => {
     const times = [];

@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import NavBar from '../components/NavBar';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 import { useAuth } from '../firebase/auth';
+
+const convertTo12Hour = (time24) => {
+  const [hour, minute] = time24.split(':');
+  const hourNum = parseInt(hour);
+  const ampm = hourNum >= 12 ? 'PM' : 'AM';
+  const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+  return `${hour12}:${minute} ${ampm}`;
+};
 
 const RoomBookings = () => {
   const { currentUser } = useAuth();
@@ -18,13 +26,6 @@ const RoomBookings = () => {
   const [bookings, setBookings] = useState([]); // Firebase data
   const [loading, setLoading] = useState(false); // loading state
 
-  useEffect(() => {
-    if (!currentUser) {
-      alert('Please log in to view bookings');
-      return;
-    }
-    loadBookingsForMonth(currentDate);
-  }, [currentDate, currentUser]);
   const rooms = [
     { id: 1, name: 'Sanctuary', shortForm: 'SANC' },
     { id: 2, name: 'Youth Room', shortForm: 'YR' },
@@ -36,65 +37,53 @@ const RoomBookings = () => {
     { id: 8, name: 'Fireside Room', shortForm: 'FSR' }
   ];
 
-  const loadBookingsForMonth = async (date) => {
+  const loadBookingsForMonth = useCallback(async (date) => {
     setLoading(true);
-    try {
-      const year = date.getFullYear();
-      const month = date.getMonth();
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const startOfMonth = new Date(year, month, 1);
+    const startDateString = startOfMonth.toISOString().split('T')[0];
+    const startOfNextMonth = new Date(year, month + 1, 1);
+    const endDateString = startOfNextMonth.toISOString().split('T')[0];
 
-      // Start of current month
-      const startOfMonth = new Date(year, month, 1);
-      const startDateString = startOfMonth.toISOString().split('T')[0];
+    console.log('Loading bookings from', startDateString, 'to', endDateString);
 
-      // Start of next month
-      const startOfNextMonth = new Date(year, month + 1, 1);
-      const endDateString = startOfNextMonth.toISOString().split('T')[0];
+    const q = query(
+      collection(db, 'roomBookings'),
+      where('date', '>=', startDateString),
+      where('date', '<', endDateString)
+    );
 
-      console.log('Loading bookings from', startDateString, 'to', endDateString);
-
-      const q = query(
-        collection(db, 'roomBookings'),
-        where('date', '>=', startDateString),
-        where('date', '<', endDateString)
-      );
-
-      const querySnapshot = await getDocs(q);
-      const monthBookings = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        monthBookings.push({
-          id: doc.id,
-          date: data.date,
-          room: data.room,
-          startTime: data.startTime,
-          endTime: data.endTime,
-          time: `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}`,
-          description: data.desc,
-          status: data.status || 'pending',
-          user: data.userName || 'Unknown User',
-          denialReason: data.denialReason
-        });
+    const querySnapshot = await getDocs(q);
+    const monthBookings = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      monthBookings.push({
+        id: doc.id,
+        date: data.date,
+        room: data.room,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        time: `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}`,
+        description: data.desc,
+        status: data.status || 'pending',
+        user: data.userName || 'Unknown User',
+        denialReason: data.denialReason
       });
+    });
 
-      console.log('Loaded bookings:', monthBookings);
-      setBookings(monthBookings);
-    } catch (error) {
-      console.error('Error loading bookings:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
+    console.log('Loaded bookings:', monthBookings);
+    setBookings(monthBookings);
+    setLoading(false);
+  }, [db]);
 
-      // More specific error messages
-      if (error.code === 'permission-denied') {
-        alert('Permission denied. Please make sure you are logged in with a valid Salvation Army email.');
-      } else if (error.code === 'failed-precondition') {
-        alert('Database query failed. Please contact administrator.');
-      } else {
-        alert(`Error loading bookings: ${error.message}`);
-      }
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!currentUser) {
+      alert('Please log in to view bookings');
+      return;
     }
-  };
+    loadBookingsForMonth(currentDate);
+  }, [currentDate, currentUser, loadBookingsForMonth]);
 
   const getBookingsForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
@@ -194,14 +183,6 @@ const RoomBookings = () => {
   const navigateMonth = async (direction) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
     setCurrentDate(newDate);
-  };
-
-  const convertTo12Hour = (time24) => {
-    const [hour, minute] = time24.split(':');
-    const hourNum = parseInt(hour);
-    const ampm = hourNum >= 12 ? 'PM' : 'AM';
-    const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
-    return `${hour12}:${minute} ${ampm}`;
   };
 
   const timeOptions = (() => {
