@@ -23,7 +23,6 @@ const RoomBookings = () => {
       alert('Please log in to view bookings');
       return;
     }
-
     loadBookingsForMonth(currentDate);
   }, [currentDate, currentUser]);
   const rooms = [
@@ -96,11 +95,6 @@ const RoomBookings = () => {
       setLoading(false);
     }
   };
-
-  // Add useEffect to load bookings when month changes
-  useEffect(() => {
-    loadBookingsForMonth(currentDate);
-  }, [currentDate]);
 
   const getBookingsForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
