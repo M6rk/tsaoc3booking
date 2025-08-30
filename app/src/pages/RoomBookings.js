@@ -100,7 +100,7 @@ const RoomBookings = () => {
   // Add useEffect to load bookings when month changes
   useEffect(() => {
     loadBookingsForMonth(currentDate);
-  }, [currentDate, loadBookingsForMonth]);
+  }, [currentDate]);
 
   const getBookingsForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
