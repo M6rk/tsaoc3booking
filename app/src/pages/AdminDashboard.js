@@ -31,10 +31,10 @@ const AdminDashboard = () => {
       const roomQuery = query(
         collection(db, 'roomBookings'),
         where('date', '>=', sevenDaysAgoString),
-        where('date', '<=', todayString),
         orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
       );
+
       const roomSnapshot = await getDocs(roomQuery);
       roomSnapshot.forEach((doc) => {
         const data = doc.data();
@@ -56,10 +56,10 @@ const AdminDashboard = () => {
       const vehicleQuery = query(
         collection(db, 'vehicleBookings'),
         where('date', '>=', sevenDaysAgoString),
-        where('date', '<=', todayString),
         orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
       );
+
       const vehicleSnapshot = await getDocs(vehicleQuery);
       vehicleSnapshot.forEach((doc) => {
         const data = doc.data();
