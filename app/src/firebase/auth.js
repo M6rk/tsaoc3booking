@@ -20,10 +20,9 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Simple admin check by email
+  // admin check :)
   const isAdmin = (user) => {
     if (!user) return false;
-    console.log('Comparing:', user.email, process.env.REACT_APP_FIREBASE_ADMIN_EMAIL);
     return user.email === process.env.REACT_APP_FIREBASE_ADMIN_EMAIL;
   };
 

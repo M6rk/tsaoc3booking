@@ -4,7 +4,7 @@ import { useAuth } from '../firebase/auth';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { currentUser, userRole, logout, isAdmin } = useAuth();
+  const { currentUser, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {

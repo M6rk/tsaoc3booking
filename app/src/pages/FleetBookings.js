@@ -54,8 +54,8 @@ const FleetBookings = () => {
           id: doc.id,
           date: data.date,
           vehicle: data.vehicle,
-          startTime: data.startTime, 
-          endTime: data.endTime,      
+          startTime: data.startTime,
+          endTime: data.endTime,
           time: data.startTime && data.endTime ? `${convertTo12Hour(data.startTime)}-${convertTo12Hour(data.endTime)}` : 'Time TBD',
           purpose: data.purpose || 'Purpose not specified',
           status: data.status || 'pending',
@@ -76,7 +76,7 @@ const FleetBookings = () => {
   // Only triggers when month changes
   useEffect(() => {
     loadBookingsForMonth(currentDate);
-  }, [currentDate]);
+  }, [currentDate, loadBookingsForMonth]);
 
   const convertTo12Hour = (time24) => {
     const [hour, minute] = time24.split(':');
@@ -159,25 +159,25 @@ const FleetBookings = () => {
   };
 
   // Check for booking conflicts
-const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
-  const dateString = selectedDate.toISOString().split('T')[0];
+  const checkForConflicts = (bookings, selectedResource, startTime, endTime, selectedDate) => {
+    const dateString = selectedDate.toISOString().split('T')[0];
 
-  // Only bookings for the same date AND same vehicle
-  const relevantBookings = bookings.filter(
-    booking =>
-      booking.date === dateString &&
-      booking.vehicle === selectedResource
-  );
+    // Only bookings for the same date AND same vehicle
+    const relevantBookings = bookings.filter(
+      booking =>
+        booking.date === dateString &&
+        booking.vehicle === selectedResource
+    );
 
-  // time overlap check
-  const conflicts = relevantBookings.filter(booking => {
-    // Only check approved and pending bookings (not denied)
-    if (booking.status === 'denied') return false;
-    return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
-  });
+    // time overlap check
+    const conflicts = relevantBookings.filter(booking => {
+      // Only check approved and pending bookings (not denied)
+      if (booking.status === 'denied') return false;
+      return timesOverlap(startTime, endTime, booking.startTime, booking.endTime);
+    });
 
-  return conflicts;
-};
+    return conflicts;
+  };
 
   // This is 1 write operation per booking + 1 read operation to refresh
   const handleSubmit = async (e) => {
